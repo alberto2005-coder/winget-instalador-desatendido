@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Instalador de software desatendido con winget (menú con casillas).
@@ -16,7 +17,8 @@
       - Log con marca de tiempo y resumen final con códigos de salida
 
 .PARAMETER Modo
-    Menu (por defecto), Instalar, Actualizar o Limpieza.
+    Menu (por defecto), Instalar, Actualizar, Limpieza, Verificar o Catalogo
+    (regenera docs/catalogo.md desde el propio script).
 
 .PARAMETER Perfil
     Ruta de un perfil JSON. En -Modo Instalar instala su lista sin preguntar.
@@ -30,6 +32,14 @@
 .PARAMETER NoAdmin
     No pide elevación a administrador.
 
+.PARAMETER Ayuda
+    Muestra esta ayuda completa (Get-Help) y sale sin hacer nada.
+
+.NOTES
+    El bloque de ayuda debe ir DESPUÉS de una línea en blanco separándolo del
+    #Requires: si queda pegado a la primera línea, PowerShell no lo reconoce y
+    Get-Help solo enseña la sintaxis.
+
 .EXAMPLE
     .\Instalar-Software.ps1
 
@@ -41,7 +51,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Menu', 'Instalar', 'Actualizar', 'Limpieza', 'Verificar')]
+    [ValidateSet('Menu', 'Instalar', 'Actualizar', 'Limpieza', 'Verificar', 'Catalogo')]
     [string]$Modo = 'Menu',
 
     [string]$Perfil,
@@ -60,7 +70,13 @@ param(
     [switch]$Ayuda
 )
 
-if ($Ayuda) { Get-Help -LiteralPath $MyInvocation.MyCommand.Path -Full; exit 0 }
+# La ayuda se pide con -Name (Get-Help NO tiene -LiteralPath: con ese nombre
+# daba error y nunca se llegaba a mostrar nada).
+if ($Ayuda) {
+    try { Get-Help -Name $MyInvocation.MyCommand.Path -Full -ErrorAction Stop }
+    catch { Write-Warning ('No se pudo mostrar la ayuda: {0}' -f $_.Exception.Message) }
+    exit 0
+}
 
 $ErrorActionPreference = 'Continue'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
@@ -253,6 +269,11 @@ function Inicializar-Entorno {
     foreach ($d in @($script:DirLog, $script:DirPerfile)) {
         if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
     }
+    # Los logs se acumulan sin limite (una ejecucion = un archivo): se quedan
+    # con los 20 mas recientes.
+    $antiguos = @(Get-ChildItem -LiteralPath $script:DirLog -Filter 'instalacion-*.log' -ErrorAction SilentlyContinue |
+                  Sort-Object LastWriteTime -Descending | Select-Object -Skip 20)
+    foreach ($f in $antiguos) { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }
     Write-Log ('Inicio. Modo={0} Perfil={1} Alcance={2}' -f $Modo, $Perfil, $Alcance) 'INFO'
 }
 
@@ -302,6 +323,19 @@ namespace Instalador {
     }
 }
 '@
+}
+
+function Get-SeleccionRapida {
+    # Devuelve $true/$false si la "seleccion rapida" esta activada, o $null si
+    # no se puede leer (para restaurar el estado original al salir).
+    try {
+        Add-TipoConsola
+        $h = [Instalador.ConsolaWin32]::GetStdHandle(-10)   # STD_INPUT_HANDLE
+        if ($h -eq [IntPtr]::Zero -or $h -eq [IntPtr](-1)) { return $null }
+        $modo = [uint32]0
+        if (-not [Instalador.ConsolaWin32]::GetConsoleMode($h, [ref]$modo)) { return $null }
+        return (($modo -band 0x40) -ne 0)
+    } catch { return $null }
 }
 
 function Set-SeleccionRapida {
@@ -725,8 +759,12 @@ function Invoke-Winget {
 
 function Get-EstaInstalado {
     param([Parameter(Mandatory)][string]$Id)
-    $r = Invoke-Winget -Argumentos @('list', '--id', $Id, '-e', '--disable-interactivity')
-    if ($r.Salida -match 'No installed package found') { return $false }
+    $r = Invoke-Winget -Argumentos @('list', '--id', $Id, '-e', '--accept-source-agreements', '--disable-interactivity')
+    # 0x8A150014 (-1978335212) = "ningun paquete coincide". Es un codigo fijo,
+    # asi que sirve en cualquier idioma: winget localiza el mensaje de texto
+    # pero no el codigo de salida.
+    if ($r.Codigo -eq -1978335212) { return $false }
+    if ($r.Salida -match 'No installed package found' -or $r.Salida -match 'No se encontr') { return $false }
     if ($r.Salida -match [regex]::Escape($Id)) { return $true }
     return $false
 }
@@ -773,6 +811,14 @@ function Install-Paquete {
         if ($r.Salida -match 'already installed' -or $r.Salida -match 'ya est.{0,20}instalado') {
             return 'YA ESTABA INSTALADO'
         }
+        # 0x8A150014 = el ID ya no existe en winget. Reintentar no va a cambiar
+        # nada: solo hace perder el doble de tiempo (y el 2.º intento se lanza
+        # sin --disable-interactivity, asi que podria quedarse esperando
+        # entrada). Se falla directamente.
+        if ($r.Codigo -eq -1978335212 -or $r.Salida -match 'No package found') {
+            Write-Log ("ID inexistente en winget: {0}" -f $Id) 'ERROR'
+            break
+        }
         Write-Log ("Intento {0} fallo para {1} (codigo {2})" -f $intento, $Id, $r.Codigo) 'AVISO'
         Write-Host ('      codigo ' + $r.Codigo) -ForegroundColor DarkYellow
         Start-Sleep -Seconds 2
@@ -792,7 +838,7 @@ function Show-Resumen {
         $estado = [string]$r.Estado
         $color = 'Red'
         if ($estado -eq 'INSTALADO' -or $estado -eq 'QUITADO') { $color = 'Green'; $ok++ }
-        elseif ($estado -like 'YA ESTABA*' -or $estado -like 'YA ESTABA*' -or $estado -eq 'NO ENCONTRADO') { $color = 'DarkGray'; $ya++ }
+        elseif ($estado -like 'YA ESTABA*' -or $estado -eq 'NO ENCONTRADO') { $color = 'DarkGray'; $ya++ }
         else { $mal++ }
         Write-Host ('  {0,-26} {1}' -f $estado, $r.Paquete) -ForegroundColor $color
         Write-Log ('RESUMEN | {0} | {1}' -f $r.Paquete, $estado)
@@ -898,7 +944,7 @@ function Invoke-Actualizacion {
     $ErrorActionPreference = 'Continue'
     try {
         if (-not $script:RutaWinget) { $script:RutaWinget = Get-RutaWinget }
-        if (-not $script:RutaWinget) { Write-Warning 'winget no esta disponible.'; return 2 }
+        if (-not $script:RutaWinget) { Write-Warning 'winget no esta disponible.'; return 1 }
         $disponibles = (& $script:RutaWinget upgrade 2>&1 | Out-String)
         Write-Host $disponibles
         Write-Log $disponibles
@@ -1105,11 +1151,14 @@ function Invoke-MenuNativo {
             Write-FilaMenu -Fila ($top + 1 + $visibles) -Texto ('  {0} marcado(s) de {1}' -f $seleccion.Count, $totalItems) -Color 'Yellow' -Cache $cache -Ancho $ancho
         }
         if ($modoInput) {
-            $ayuda = '  ID de winget: ' + $buffer + ' | Enter=anadir, Esc=cancelar'
+            $ayuda = '  ID de winget: ' + $buffer + ' | Enter=anadir, Retroceso=borrar, Esc=cancelar'
         } else {
-            $ayuda = '  Flechas=mover  Esp=marcar  a=todas  n=ninguna  i=invertir  Enter=aceptar  Esc=salir'
-            if ($Preajustes) { $ayuda = '  Flechas  Esp=marcar  1-9=perfil  Enter=aceptar  Esc=salir' }
-            if ($Exportable) { $ayuda += '  x=guardar JSON' }
+            # El .= es importante: antes el "1-9=perfil" SOBRESCRIBIA la linea y
+            # dejaba de anunciar a/n/i/g, que siguen funcionando igual.
+            $ayuda = '  Flechas=mover  Esp=marcar  Enter=aceptar  Esc=salir'
+            if ($Preajustes) { $ayuda += '  1-9=perfil' }
+            $ayuda += '  a=todas n=ninguna i=invertir g=ID'
+            if ($Exportable) { $ayuda += '  x=JSON' }
         }
         Write-FilaMenu -Fila ($top + 2 + $visibles) -Texto $ayuda -Color 'DarkGray' -Cache $cache -Ancho $ancho
 
@@ -1463,6 +1512,89 @@ function Opcion-Limpieza {
     return @($resultados | Where-Object { $_.Estado -eq 'FALLÓ' }).Count
 }
 
+# ---------------------------------------------------------------------------
+#  GENERADOR DE docs/catalogo.md
+#  (el documento dice ser "generado automaticamente": aqui esta el generador)
+# ---------------------------------------------------------------------------
+function New-CatalogoDoc {
+    $ruta = Join-Path (Join-Path $script:DirBase 'docs') 'catalogo.md'
+    try {
+        $dir = Split-Path -Parent $ruta
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+
+        # ID -> nombre, para escribir los preajustes en legible y no en IDs
+        $nombres = @{}
+        $totalProg = 0
+        foreach ($g in $script:Catalogo.Keys) {
+            foreach ($p in $script:Catalogo[$g]) { $nombres[$p.Id] = $p.Nombre; $totalProg++ }
+        }
+        $totalBloat = 0
+        foreach ($g in $script:BloatCatalogo.Keys) { $totalBloat += @($script:BloatCatalogo[$g]).Count }
+
+        $L = New-Object 'System.Collections.Generic.List[string]'
+        $L.Add('# Catálogo de programas')
+        $L.Add('')
+        $L.Add('Lista completa de lo que ofrece el menú, con su **ID de winget**. Generada automáticamente desde `Instalar-Software.ps1` con `-Modo Catalogo` (no la edites a mano: si cambias el catálogo, vuelve a generarla).')
+        $L.Add('')
+        $L.Add(('Total: **{0} programas** en **{1} categorías**.' -f $totalProg, $script:Catalogo.Count))
+        $L.Add('')
+        $L.Add('Para instalar cualquiera de ellos suelto, fuera del menú:')
+        $L.Add('')
+        $L.Add('```powershell')
+        $L.Add('winget install --id <ID> -e --accept-package-agreements --accept-source-agreements')
+        $L.Add('```')
+        $L.Add('')
+        $L.Add('## Programas')
+        $L.Add('')
+        $L.Add('| # | Programa | ID de winget | Categoría |')
+        $L.Add('|--:|:---------|:-------------|:----------|')
+        $n = 0
+        foreach ($g in $script:Catalogo.Keys) {
+            foreach ($p in $script:Catalogo[$g]) {
+                $n++
+                $L.Add(('| {0} | {1} | `{2}` | {3} |' -f $n, $p.Nombre, $p.Id, $g))
+            }
+        }
+        $L.Add('')
+        $L.Add('## Perfiles rápidos (teclas 1-9 dentro del menú)')
+        $L.Add('')
+        $L.Add('| Tecla | Perfil | Programas |')
+        $L.Add('|--:|:-------|:----------|')
+        $t = 0
+        foreach ($k in $script:Preajustes.Keys) {
+            $t++
+            $texto = @($script:Preajustes[$k] | ForEach-Object { if ($nombres[$_]) { $nombres[$_] } else { $_ } }) -join ', '
+            $L.Add(('| {0} | {1} | {2} |' -f $t, $k, $texto))
+        }
+        $L.Add('')
+        $L.Add('Los perfiles rápidos son listas de IDs: si marcas un programa nuevo y quieres')
+        $L.Add('que salga en uno de ellos, se añade en `$script:Preajustes`.')
+        $L.Add('')
+        $L.Add('## Apps preinstaladas (opción 4: des-bloat)')
+        $L.Add('')
+        $L.Add(('{0} apps repartidas en {1} grupos. Cada entrada trae nombre, patrón de' -f $totalBloat, $script:BloatCatalogo.Count))
+        $L.Add('búsqueda y si viene marcada por defecto (solo las que son ruido).')
+        $L.Add('')
+        $L.Add('| Grupo | Apps | Marcadas por defecto |')
+        $L.Add('|:------|-----:|---------------------:|')
+        foreach ($g in $script:BloatCatalogo.Keys) {
+            $elems    = @($script:BloatCatalogo[$g])
+            $marcadas = @($elems | Where-Object { $_.PorDefecto }).Count
+            $L.Add(('| {0} | {1} | {2} |' -f $g, $elems.Count, $marcadas))
+        }
+        $L.Add('')
+
+        # UTF-8 con BOM: los acentos se ven bien tambien en el Bloc de notas
+        [IO.File]::WriteAllText($ruta, (($L -join "`r`n") + "`r`n"), (New-Object Text.UTF8Encoding($true)))
+        Write-Log ("Catalogo regenerado: {0} ({1} programas)" -f $ruta, $totalProg) 'OK'
+        Write-Paso ('  Catálogo regenerado: {0}  ({1} programas, {2} apps de bloat)' -f $ruta, $totalProg, $totalBloat) 'Green'
+        return 0
+    } catch {
+        Write-Warning ('No se pudo generar el catálogo: ' + $_.Exception.Message)
+        return 1
+    }
+}
+
 function Show-MenuPrincipal {
     while ($true) {
         Write-Host ''
@@ -1501,6 +1633,12 @@ function Show-MenuPrincipal {
 #  PRINCIPAL
 # ---------------------------------------------------------------------------
 Inicializar-Entorno
+
+# -Modo Catalogo solo regenera docs/catalogo.md: no necesita winget, ni admin,
+# ni tocar la consola. Va antes de todo lo demás por eso.
+if ($Modo -eq 'Catalogo') { exit (New-CatalogoDoc) }
+
+$script:QuickEditOriginal = Get-SeleccionRapida   # para restaurarlo al salir
 Set-ConsolaFuente -Alto $Fuente
 Set-SeleccionRapida $false      # un clic en la ventana no debe congelar el menu
 if (-not (Test-Winget)) { Write-Log 'winget no disponible. Saliendo.' 'ERROR'; exit 2 }
@@ -1533,11 +1671,17 @@ switch ($Modo) {
         $salida = Invoke-Verificacion
     }
     'Limpieza' {
-        if ($Perfil -and (Test-Path -LiteralPath $Perfil)) {
+        if ($Perfil) {
+            # Antes, un -Perfil inexistente caia sin mas en el menu interactivo
+            # (y sin pedir administrador): ahora es un error de configuracion.
+            if (-not (Test-Path -LiteralPath $Perfil)) {
+                Write-Warning ('No existe el archivo de perfil: ' + $Perfil)
+                exit 2
+            }
             Invoke-Elevacion
-            try { $p = Get-Perfil -Ruta $Perfil } catch { $p = $null }
+            try { $p = Get-Perfil -Ruta $Perfil } catch { Write-Warning $_.Exception.Message; exit 2 }
             $resultados = New-Object System.Collections.ArrayList
-            if ($p -and $p.Bloat.Count -gt 0) {
+            if ($p.Bloat.Count -gt 0) {
                 foreach ($patron in $p.Bloat) {
                     $estado = Remove-AppxBloat -Patron $patron -Nombre $patron
                     Write-Host ('  {0} -> {1}' -f $patron, $estado)
@@ -1547,11 +1691,20 @@ switch ($Modo) {
                 $salida = @($resultados | Where-Object { $_.Estado -eq 'FALLÓ' }).Count
             } else { Write-Warning 'El perfil no tiene lista "bloat".' }
         } else {
+            Invoke-Elevacion          # quitar apps preinstaladas exige admin
             $salida = Opcion-Limpieza
         }
     }
 }
 
 Write-Log ('Fin. Codigo de salida={0}' -f $salida) 'FIN'
-Set-SeleccionRapida $true       # deja la consola como estaba
-exit $salida
+# Restaura la "seleccion rapida" COMO ESTABA antes (antes se forzaba a activada
+# aunque el usuario la tuviera desactivada).
+if ($null -ne $script:QuickEditOriginal) { Set-SeleccionRapida ([bool]$script:QuickEditOriginal) }
+else { Set-SeleccionRapida $true }
+
+# Contrato de codigos de salida (README y docs/problemas.md): 0 = todo bien,
+# 1 = hubo fallos, 2 = error de configuracion. Las funciones devuelven el
+# NUMERO de fallos para pintarlos en pantalla; aqui se normaliza.
+if ($salida -gt 0) { exit 1 }
+exit 0
