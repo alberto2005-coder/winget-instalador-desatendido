@@ -935,6 +935,52 @@ function Remove-AppxBloat {
     return $estado
 }
 
+# Aplica la lista "bloat" de un perfil. Devuelve el NUMERO de fallos, igual que
+# Invoke-Instalacion, para que el llamante pueda sumarlos al codigo de salida.
+# Lo usan -Modo Instalar, la opcion 2 del menu y -Modo Limpieza -Perfil: los tres
+# caminos prometen instalar los paquetes Y quitar el bloat del perfil.
+function Invoke-DesBloatPerfil {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]$Perfil,
+        [switch]$Confirmar
+    )
+    $patrones = @($Perfil.Bloat | Where-Object { $_ })
+    if ($patrones.Count -eq 0) {
+        Write-Warning 'El perfil no tiene lista "bloat".'
+        return 0
+    }
+    if ($Confirmar) {
+        Write-Host ''
+        Write-Host ('Se quitaran {0} app(s) de bloat:' -f $patrones.Count) -ForegroundColor Cyan
+        foreach ($patron in $patrones) { Write-Host ('   - ' + $patron) }
+        $resp = Read-Host '  Continuar? (S/n)'
+        if ($resp -and $resp -notmatch '^[sS]') {
+            Write-Host '  Cancelado.' -ForegroundColor Yellow
+            return 0
+        }
+    }
+
+    $resultados = New-Object System.Collections.ArrayList
+    $n = 0
+    foreach ($patron in $patrones) {
+        $n++
+        Write-Host ''
+        Write-Host ('[{0}/{1}] {2}' -f $n, $patrones.Count, $patron) -ForegroundColor Cyan
+        $estado = Remove-AppxBloat -Patron $patron -Nombre $patron
+        Write-Host ('      -> ' + $estado)
+        Write-Log ('{0} -> {1}' -f $patron, $estado)
+        [void]$resultados.Add([pscustomobject]@{ Paquete = $patron; Estado = $estado })
+    }
+    Show-Resumen -Resultados $resultados -Titulo 'RESUMEN DES-BLOAT'
+    # Mismo criterio que Show-Resumen: solo QUITADO y NO ENCONTRADO cuentan como
+    # bien. Asi el recuento no depende del literal acentuado de "fallo".
+    return @($resultados | Where-Object {
+        $e = [string]$_.Estado
+        -not ($e -eq 'QUITADO' -or $e -eq 'NO ENCONTRADO')
+    }).Count
+}
+
 # ---------------------------------------------------------------------------
 #  ACTUALIZAR TODO
 # ---------------------------------------------------------------------------
@@ -992,8 +1038,9 @@ function Export-Perfil {
         nombre    = $nombre
         creado    = (Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')
         alcance   = $Alcance
-        paquetes  = @($Paquetes)
-        bloat     = @($Bloat)
+        # Sin el Where-Object, pasar solo -Bloat dejaba "paquetes": [null].
+        paquetes  = @($Paquetes | Where-Object { $_ })
+        bloat     = @($Bloat | Where-Object { $_ })
     }
     $obj | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ruta -Encoding UTF8
     Write-Log ("Perfil exportado: {0}" -f $ruta) 'OK'
@@ -1083,6 +1130,7 @@ function Invoke-MenuNativo {
         [int[]]$SeleccionInicial = @(),
         [System.Collections.Specialized.OrderedDictionary]$Preajustes,
         [switch]$Exportable,
+        [switch]$ExportarBloat,
         [switch]$TodoInicial
     )
 
@@ -1158,7 +1206,9 @@ function Invoke-MenuNativo {
             $ayuda = '  Flechas=mover  Esp=marcar  Enter=aceptar  Esc=salir'
             if ($Preajustes) { $ayuda += '  1-9=perfil' }
             $ayuda += '  a=todas n=ninguna i=invertir g=ID'
-            if ($Exportable) { $ayuda += '  x=JSON' }
+            if ($Exportable) {
+                if ($ExportarBloat) { $ayuda += '  x=JSON(bloat)' } else { $ayuda += '  x=JSON' }
+            }
         }
         Write-FilaMenu -Fila ($top + 2 + $visibles) -Texto $ayuda -Color 'DarkGray' -Cache $cache -Ancho $ancho
 
@@ -1230,7 +1280,12 @@ function Invoke-MenuNativo {
                 if ($Elementos[$i].Tipo -eq 'item') { $ids += $Elementos[$i].Id }
             }
             if ($ids.Count -gt 0) {
-                try { $ruta = Export-Perfil -Paquetes $ids; $mensaje = 'Guardado: ' + (Split-Path -Leaf $ruta) }
+                try {
+                    # La opcion 1 guarda paquetes; la 4 (des-bloat) guarda el array "bloat".
+                    if ($ExportarBloat) { $ruta = Export-Perfil -Bloat $ids }
+                    else { $ruta = Export-Perfil -Paquetes $ids }
+                    $mensaje = 'Guardado: ' + (Split-Path -Leaf $ruta)
+                }
                 catch { $mensaje = 'Error al guardar: ' + $_.Exception.Message }
             } else { $mensaje = 'Nada marcado que guardar' }
         } elseif ($Preajustes -and
@@ -1275,6 +1330,7 @@ function Invoke-MenuSimple {
         [int[]]$SeleccionInicial = @(),
         [System.Collections.Specialized.OrderedDictionary]$Preajustes,
         [switch]$Exportable,
+        [switch]$ExportarBloat,
         [switch]$TodoInicial
     )
     Write-Host ''
@@ -1311,6 +1367,7 @@ function Invoke-MenuConsola {
         [int[]]$SeleccionInicial = @(),
         [System.Collections.Specialized.OrderedDictionary]$Preajustes,
         [switch]$Exportable,
+        [switch]$ExportarBloat,
         [switch]$TodoInicial
     )
     $argumentos = @{
@@ -1319,6 +1376,7 @@ function Invoke-MenuConsola {
         SeleccionInicial  = $SeleccionInicial
         Preajustes        = $Preajustes
         Exportable        = $Exportable
+        ExportarBloat     = $ExportarBloat
         TodoInicial       = $TodoInicial
     }
     $nativo = $true
@@ -1470,10 +1528,23 @@ function Opcion-Importar {
         Write-Warning ('No se pudo leer el perfil: ' + $_.Exception.Message)
         return 0
     }
-    if ($p.Paquetes.Count -eq 0) { Write-Warning 'El perfil no contiene paquetes.'; return 0 }
+    if ($p.Paquetes.Count -eq 0 -and $p.Bloat.Count -eq 0) {
+        Write-Warning 'El perfil no contiene paquetes.'
+        return 0
+    }
     $alc = $Alcance
     if ($p.Alcance -and $p.Alcance -ne 'Auto') { $alc = $p.Alcance }
-    return Invoke-Instalacion -Ids $p.Paquetes -Alcance $alc -Confirmar
+    $fallos = 0
+    if ($p.Paquetes.Count -gt 0) {
+        $fallos = Invoke-Instalacion -Ids $p.Paquetes -Alcance $alc -Confirmar
+    } else {
+        Write-Log 'El perfil no tiene paquetes: solo se aplicara el des-bloat.' 'AVISO'
+    }
+    # La opcion 2 instala los paquetes Y aplica el bloat del perfil (README.md y
+    # docs/perfiles.md lo prometen). El bloat se pregunta aparte: si el usuario
+    # cancela la instalacion puede decidir no tocar el sistema.
+    $fallos += Invoke-DesBloatPerfil -Perfil $p -Confirmar
+    return $fallos
 }
 
 function Opcion-Limpieza {
@@ -1484,7 +1555,8 @@ function Opcion-Limpieza {
     Write-Host '  Seleccion predeterminada = las que solo son ruido.' -ForegroundColor DarkGray
     Show-Leyenda -Preajustes $null
     $r = Invoke-MenuConsola -Titulo 'APPS A QUITAR  (dejadas las que no quieras tocar)' `
-                            -Elementos $elementos -SeleccionInicial $inicial
+                            -Elementos $elementos -SeleccionInicial $inicial `
+                            -Exportable -ExportarBloat
     if ($r.Cancelado) { Write-Host '  Seleccion cancelada.' -ForegroundColor Yellow; return 0 }
     $patrones = @()
     foreach ($i in $r.Indices) { if ($elementos[$i].Tipo -eq 'item') { $patrones += $elementos[$i] } }
@@ -1661,6 +1733,9 @@ switch ($Modo) {
         $alc = $Alcance
         if ($p.Alcance -and $p.Alcance -ne 'Auto') { $alc = $p.Alcance }
         $salida = Invoke-Instalacion -Ids $p.Paquetes -Alcance $alc
+        # Un perfil es "que instalar" + "que quitar": README y docs/perfiles.md
+        # prometen que -Modo Instalar aplica las dos cosas, en ese orden.
+        $salida += Invoke-DesBloatPerfil -Perfil $p
     }
     'Actualizar' {
         Invoke-Elevacion
@@ -1680,16 +1755,7 @@ switch ($Modo) {
             }
             Invoke-Elevacion
             try { $p = Get-Perfil -Ruta $Perfil } catch { Write-Warning $_.Exception.Message; exit 2 }
-            $resultados = New-Object System.Collections.ArrayList
-            if ($p.Bloat.Count -gt 0) {
-                foreach ($patron in $p.Bloat) {
-                    $estado = Remove-AppxBloat -Patron $patron -Nombre $patron
-                    Write-Host ('  {0} -> {1}' -f $patron, $estado)
-                    [void]$resultados.Add([pscustomobject]@{ Paquete = $patron; Estado = $estado })
-                }
-                Show-Resumen -Resultados $resultados -Titulo 'RESUMEN DES-BLOAT'
-                $salida = @($resultados | Where-Object { $_.Estado -eq 'FALLÓ' }).Count
-            } else { Write-Warning 'El perfil no tiene lista "bloat".' }
+            $salida = Invoke-DesBloatPerfil -Perfil $p
         } else {
             Invoke-Elevacion          # quitar apps preinstaladas exige admin
             $salida = Opcion-Limpieza
