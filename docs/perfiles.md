@@ -8,7 +8,7 @@ Windows) sin tener que volver a marcar nada a mano.
 
 1. Ejecuta `INICIAR.bat` y entra en **1) Instalar programas** (para software) o **4) Quitar apps preinstaladas** (para limpieza).
 2. Marca con `Espacio` lo que quieras y pulsa **`X`**.
-3. Se guarda solo, en `perfiles\seleccion-AAAAmmdd-HHmmss.json`. Si guardaste desde la opción 1 se guardará la lista de `paquetes`; si lo hiciste desde la opción 4 se guardará la lista de `bloat`. (Puedes abrir los `.json` con el bloc de notas y combinar ambos arrays en un solo perfil maestro).
+3. Se guarda solo, en `perfiles\seleccion-AAAAmmdd-HHmmss.json` (si ya existe otro del mismo segundo se le añade `-2`, `-3`, …). Si guardaste desde la opción 1 se guardará la lista de `paquetes`; si lo hiciste desde la opción 4 se guardará la lista de `bloat`. (Puedes abrir los `.json` con el bloc de notas y combinar ambos arrays en un solo perfil maestro).
 
 También puedes copiar uno de los perfiles de ejemplo y editarlo a mano.
 

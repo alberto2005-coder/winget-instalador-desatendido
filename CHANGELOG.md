@@ -32,6 +32,15 @@ Corrección de fallos detectados en la revisión de código.
   que la documentación prometía `0 / 1 / 2`. Ahora se normaliza al final.
 - **La ayuda del menú escondía atajos vivos**: con perfiles rápidos la línea
   se sobrescribía y dejaba de anunciar `a`/`n`/`i`/`g`, que seguían funcionando.
+- **Dos guardados en el mismo segundo se pisaban**: `Export-Perfil` nombraba el
+  archivo `seleccion-AAAAmmdd-HHmmss.json` (sin milisegundos) y usaba
+  `Set-Content`, de modo que el segundo perfil sobrescribía al primero y se
+  perdía. Ahora, si el archivo ya existe, se añade `-2`, `-3`…; el nombre
+  documentado sigue siendo el habitual en el caso normal.
+- **El menú de respaldo no sabía guardar**: si el menú gráfico no está
+  disponible (consola redirigida), `Invoke-MenuSimple` ignoraba `-Exportable`
+  y la tecla `X` no existía, aunque el menú nativo sí la tenía. Ahora acepta
+  el comando `x` en el propio prompt y guarda `paquetes` o `bloat` igual.
 - **`Show-Resumen` comparaba dos veces lo mismo**
   (`-like 'YA ESTABA*' -or -like 'YA ESTABA*'`): condición muerta de copiar y
   pegar.
@@ -53,6 +62,17 @@ Corrección de fallos detectados en la revisión de código.
   El documento decía ser "generado automáticamente" y no había ningún
   generador; ahora el catálogo nunca se queda desfasado del código.
 - **`.gitignore`**: los `log/*.log` dejan de versionarse.
+- **Des-bloat también al instalar un perfil**: `-Modo Instalar -Perfil` y la
+  **opción 2** (importar JSON) aplican ahora la lista `bloat` del perfil además
+  de sus paquetes, que era lo que ya prometían `README.md` y
+  `docs/perfiles.md` sin que el código lo hiciera. En la opción 2 se pide
+  confirmación aparte, por si el usuario cancela la instalación.
+- **La opción 4 puede guardar su selección**: el menú de des-bloat recibe
+  `-Exportable -ExportarBloat`, así que la tecla `X` escribe un perfil con el
+  array `bloat` (y `paquetes` vacío), como documenta `docs/perfiles.md`.
+- **Función `Invoke-DesBloatPerfil`** compartida por los tres caminos que
+  aplican bloat de un perfil (`-Modo Instalar`, opción 2 y
+  `-Modo Limpieza -Perfil`); antes cada uno repetía su propio bloque.
 - **`.PARAMETER Ayuda`** en la ayuda del script.
 - Los 83 IDs del catálogo se han comprobado con `-Modo Verificar`:
   **83 correctos, 0 rotos**.

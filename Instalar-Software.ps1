@@ -1032,8 +1032,18 @@ function Invoke-Actualizacion {
 # ---------------------------------------------------------------------------
 function Export-Perfil {
     param([string[]]$Paquetes, [string[]]$Bloat = @())
-    $nombre = 'seleccion-{0}' -f (Get-Date -Format 'yyyyMMdd-HHmmss')
+    # El nombre lleva solo segundos: dos guardados en el mismo segundo se pisaban
+    # (Set-Content sobrescribe y se perdia el primer perfil). Se conserva el
+    # formato documentado y solo se anade un sufijo si el archivo ya existe.
+    $marca = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $nombre = 'seleccion-{0}' -f $marca
     $ruta = Join-Path $script:DirPerfile ($nombre + '.json')
+    $n = 1
+    while (Test-Path -LiteralPath $ruta) {
+        $n++
+        $nombre = 'seleccion-{0}-{1}' -f $marca, $n
+        $ruta = Join-Path $script:DirPerfile ($nombre + '.json')
+    }
     $obj = [pscustomobject]@{
         nombre    = $nombre
         creado    = (Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')
@@ -1346,16 +1356,44 @@ function Invoke-MenuSimple {
         if ($TodoInicial -or ($SeleccionInicial -contains $i)) { $marca = 'x' }
         Write-Host ('  {0,2}) [{1}] {2}' -f $n, $marca, $e.Nombre)
     }
-    $resp = Read-Host '  Marca los numeros (ej: 1,3,5), a=todo, n=ninguno, Enter=cancelar'
+    # El menu nativo gestiona la tecla x; aqui no hay teclas, asi que se simula
+    # con un comando "x" en el propio prompt. Sin -Exportable el comportamiento
+    # es identico al de siempre: la primera respuesta es la seleccion final.
+    $ayuda = '  Marca los numeros (ej: 1,3,5), a=todo, n=ninguno'
+    if ($Exportable) { $ayuda += ', x=guardar JSON, Enter=aceptar' }
+    else { $ayuda += ', Enter=cancelar' }
+
     $idx = @()
-    if ($resp -match '^[aA]$') {
-        $idx = @(0..($Elementos.Count - 1) | Where-Object { $Elementos[$_].Tipo -eq 'item' })
-    } elseif ($resp) {
-        foreach ($p in ($resp -split '[^\d]+')) {
-            if ($p -and $numeros.ContainsKey([int]$p)) { $idx += $numeros[[int]$p] }
+    while ($true) {
+        $resp = Read-Host $ayuda
+        if (-not $resp) {
+            if ($Exportable -and $idx.Count -gt 0) { break }   # Enter con seleccion = aceptar
+            return [pscustomobject]@{ Cancelado = $true; Indices = [int[]]@() }
         }
-    } else {
-        return [pscustomobject]@{ Cancelado = $true; Indices = [int[]]@() }
+        if ($Exportable -and $resp -match '^[xX]$') {
+            if ($idx.Count -eq 0) {
+                Write-Host '  Nada marcado que guardar.' -ForegroundColor Yellow
+            } else {
+                $ids = @($idx | ForEach-Object { $Elementos[$_].Id })
+                try {
+                    # La opcion 1 guarda paquetes; la 4 (des-bloat) guarda "bloat".
+                    if ($ExportarBloat) { $ruta = Export-Perfil -Bloat $ids }
+                    else { $ruta = Export-Perfil -Paquetes $ids }
+                    Write-Host ('  Guardado: ' + (Split-Path -Leaf $ruta)) -ForegroundColor Green
+                }
+                catch { Write-Host ('  Error al guardar: ' + $_.Exception.Message) -ForegroundColor Red }
+            }
+            continue
+        }
+        if ($resp -match '^[aA]$') {
+            $idx = @(0..($Elementos.Count - 1) | Where-Object { $Elementos[$_].Tipo -eq 'item' })
+        } else {
+            $idx = @()
+            foreach ($p in ($resp -split '[^\d]+')) {
+                if ($p -and $numeros.ContainsKey([int]$p)) { $idx += $numeros[[int]$p] }
+            }
+        }
+        if (-not $Exportable) { break }
     }
     return [pscustomobject]@{ Cancelado = $false; Indices = [int[]]$idx }
 }
