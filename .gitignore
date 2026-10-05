@@ -1,20 +1,15 @@
-# Bitacoras: una por ejecucion, propias de cada equipo
-log/
+# Un .log por ejecución, el propio script los genera y se queda con los 20
+# más recientes: no tiene sentido versionarlos.
+log/*.log
+log/*.log.old
 
-# Windows
+# Salida intermedia de una descarga interrumpida (Invoke-DescargaFiable)
+*.descarga
+
+# Archivos temporales de Windows y editores
 Thumbs.db
-desktop.ini
-*.lnk
-
-# Editores / sistemas
+Desktop.ini
+*.swp
+*.tmp
 .vscode/
 .idea/
-.DS_Store
-
-# Salidas de compilacion (si empaquetas el .ps1 como .exe)
-dist/
-build/
-
-# Copias de seguridad
-*.bak
-*~
