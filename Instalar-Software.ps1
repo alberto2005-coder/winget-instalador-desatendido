@@ -943,11 +943,15 @@ function Invoke-DesBloatPerfil {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$Perfil,
-        [switch]$Confirmar
+        [switch]$Confirmar,
+        [switch]$AvisarSiVacio
     )
     $patrones = @($Perfil.Bloat | Where-Object { $_ })
     if ($patrones.Count -eq 0) {
-        Write-Warning 'El perfil no tiene lista "bloat".'
+        # Solo -Modo Limpieza -Perfil avisa, que es lo que hacia la v1.0.0. En
+        # instalacion seria ruido: casi ningun perfil de ejemplo trae bloat.
+        if ($AvisarSiVacio) { Write-Warning 'El perfil no tiene lista "bloat".' }
+        else { Write-Log 'El perfil no tiene lista "bloat": nada que quitar.' 'AVISO' }
         return 0
     }
     if ($Confirmar) {
@@ -1793,7 +1797,7 @@ switch ($Modo) {
             }
             Invoke-Elevacion
             try { $p = Get-Perfil -Ruta $Perfil } catch { Write-Warning $_.Exception.Message; exit 2 }
-            $salida = Invoke-DesBloatPerfil -Perfil $p
+            $salida = Invoke-DesBloatPerfil -Perfil $p -AvisarSiVacio
         } else {
             Invoke-Elevacion          # quitar apps preinstaladas exige admin
             $salida = Opcion-Limpieza

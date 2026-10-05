@@ -66,7 +66,9 @@ Corrección de fallos detectados en la revisión de código.
   **opción 2** (importar JSON) aplican ahora la lista `bloat` del perfil además
   de sus paquetes, que era lo que ya prometían `README.md` y
   `docs/perfiles.md` sin que el código lo hiciera. En la opción 2 se pide
-  confirmación aparte, por si el usuario cancela la instalación.
+  confirmación aparte, por si el usuario cancela la instalación. Si el perfil
+  no trae `bloat` (los 5 de ejemplo), la instalación muestra exactamente la
+  misma salida que en 1.0.0: el aviso queda en el log, no en consola.
 - **La opción 4 puede guardar su selección**: el menú de des-bloat recibe
   `-Exportable -ExportarBloat`, así que la tecla `X` escribe un perfil con el
   array `bloat` (y `paquetes` vacío), como documenta `docs/perfiles.md`.
