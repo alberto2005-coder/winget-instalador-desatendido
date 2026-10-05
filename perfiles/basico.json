@@ -1,0 +1,15 @@
+{
+  "nombre": "basico",
+  "creado": "2026-10-05T18:20:00",
+  "alcance": "Auto",
+  "paquetes": [
+    "Google.Chrome",
+    "7zip.7zip",
+    "VideoLAN.VLC",
+    "Notepad++.Notepad++",
+    "voidtools.Everything",
+    "Microsoft.PowerToys",
+    "Bitwarden.Bitwarden"
+  ],
+  "bloat": []
+}

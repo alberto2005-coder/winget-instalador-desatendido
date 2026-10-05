@@ -1,0 +1,20 @@
+# Bitacoras: una por ejecucion, propias de cada equipo
+log/
+
+# Windows
+Thumbs.db
+desktop.ini
+*.lnk
+
+# Editores / sistemas
+.vscode/
+.idea/
+.DS_Store
+
+# Salidas de compilacion (si empaquetas el .ps1 como .exe)
+dist/
+build/
+
+# Copias de seguridad
+*.bak
+*~

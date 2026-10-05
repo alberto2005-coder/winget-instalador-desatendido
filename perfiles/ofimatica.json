@@ -1,0 +1,11 @@
+{
+  "nombre": "ofimatica",
+  "creado": "2026-10-05T18:20:00",
+  "alcance": "Auto",
+  "paquetes": [
+    "TheDocumentFoundation.LibreOffice",
+    "GIMP.GIMP",
+    "IrfanSkiljan.IrfanView"
+  ],
+  "bloat": []
+}

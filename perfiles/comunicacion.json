@@ -1,0 +1,12 @@
+{
+  "nombre": "comunicacion",
+  "creado": "2026-10-05T18:20:00",
+  "alcance": "Auto",
+  "paquetes": [
+    "Discord.Discord",
+    "Telegram.TelegramDesktop",
+    "SlackTechnologies.Slack",
+    "Zoom.Zoom"
+  ],
+  "bloat": []
+}

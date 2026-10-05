@@ -1,0 +1,13 @@
+{
+  "nombre": "gaming",
+  "creado": "2026-10-05T18:20:00",
+  "alcance": "Auto",
+  "paquetes": [
+    "Valve.Steam",
+    "EpicGames.EpicGamesLauncher",
+    "Discord.Discord",
+    "Spotify.Spotify",
+    "qBittorrent.qBittorrent"
+  ],
+  "bloat": []
+}

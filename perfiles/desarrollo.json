@@ -1,0 +1,14 @@
+{
+  "nombre": "desarrollo",
+  "creado": "2026-10-05T18:20:00",
+  "alcance": "Auto",
+  "paquetes": [
+    "Git.Git",
+    "Microsoft.VisualStudioCode",
+    "Python.Python.3.12",
+    "OpenJS.NodeJS",
+    "Microsoft.WindowsTerminal",
+    "Microsoft.PowerShell"
+  ],
+  "bloat": []
+}
