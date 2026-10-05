@@ -6,14 +6,13 @@ Windows) sin tener que volver a marcar nada a mano.
 
 ## Crear un perfil
 
-1. Ejecuta `INICIAR.bat` y entra en **1) Instalar programas**.
-2. Elige la categoría, marca con `Espacio` lo que quieras y pulsa **`X`**.
-3. Se guarda solo, en `perfiles\seleccion-AAAAmmdd-HHmmss.json`.
+1. Ejecuta `INICIAR.bat` y entra en **1) Instalar programas** (para software) o **4) Quitar apps preinstaladas** (para limpieza).
+2. Marca con `Espacio` lo que quieras y pulsa **`X`**.
+3. Se guarda solo, en `perfiles\seleccion-AAAAmmdd-HHmmss.json`. Si guardaste desde la opción 1 se guardará la lista de `paquetes`; si lo hiciste desde la opción 4 se guardará la lista de `bloat`. (Puedes abrir los `.json` con el bloc de notas y combinar ambos arrays en un solo perfil maestro).
 
-También puedes copiar uno de los de ejemplo y editarlo con el Bloc de notas.
+También puedes copiar uno de los perfiles de ejemplo y editarlo a mano.
 
-> Perfil = "qué instalar". Si además quieres que un perfil también quite apps
-> preinstaladas, rellena el campo `bloat` con sus patrones (ver más abajo).
+> Perfil = "qué instalar" + "qué quitar". El campo `bloat` indica los patrones de las apps a desinstalar.
 
 ## Campos
 
@@ -48,12 +47,12 @@ También puedes copiar uno de los de ejemplo y editarlo con el Bloc de notas.
 ## Ejecutar un perfil
 
 ```powershell
-# Opción cómoda: 2) Importar perfil JSON e instalar (desde el menú principal)
+# Opción cómoda: 2) Importar perfil JSON e instalar (desde el menú principal). ¡Esto instala los paquetes y también quita las apps de bloatware especificadas!
 
-# O directamente, sin ventanas interactivas:
+# O directamente desde consola, sin ventanas interactivas (aplica ambas cosas):
 .\Instalar-Software.ps1 -Modo Instalar -Perfil .\perfiles\basico.json
 
-# Con la lista "bloat" del propio perfil (des-bloat desatendido):
+# Para aplicar SOLO la limpieza "bloat" de un perfil, ignorando la instalación de paquetes:
 .\Instalar-Software.ps1 -Modo Limpieza -Perfil .\perfiles\basico.json
 ```
 
@@ -69,8 +68,8 @@ El script pide administrador por ti solo si hace falta.
 | `ofimatica.json` | 3 | LibreOffice, GIMP, IrfanView |
 | `comunicacion.json` | 4 | Discord, Telegram, Slack, Zoom |
 
-Los cinco traen `"bloat": []`: se rellenan solo si quieres que ese perfil también
-haga des-bloat.
+Los cinco traen `"bloat": []`: se rellenan si quieres que ese perfil también
+haga des-bloat, o puedes generar un perfil de limpieza desde la opción 4 y combinarlo.
 
 ## Perfiles rápidos vs. perfiles JSON
 
