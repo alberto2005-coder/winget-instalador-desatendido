@@ -77,11 +77,15 @@ otras ventanas. Para forzar un tamaño:
 # Comprobar que ningún ID del catálogo/perfiles haya cambiado en winget
 .\Instalar-Software.ps1 -Modo Verificar
 
+# Regenerar docs/catalogo.md tras añadir o quitar programas del catálogo
+.\Instalar-Software.ps1 -Modo Catalogo
+
 # Opciones extra
 .\Instalar-Software.ps1 -Todo                # pre-marca todo el catálogo
 .\Instalar-Software.ps1 -NoAdmin             # sin elevación (solo usuario actual)
 .\Instalar-Software.ps1 -Alcance User        # Auto | Machine | User
 .\Instalar-Software.ps1 -Fuente 24           # tamaño de letra en px (0 = automático)
+.\Instalar-Software.ps1 -Ayuda               # ayuda completa (Get-Help)
 ```
 
 Hay 5 perfiles de ejemplo en `perfiles\` (`basico`, `gaming`, `desarrollo`,
@@ -99,11 +103,12 @@ InstaladorWinget/
 ├── README.md                ← este archivo
 ├── CHANGELOG.md             ← qué cambia en cada versión
 ├── LICENSE                  ← MIT
+├── .gitignore               ← no versiona los logs
 ├── docs/
-│   ├── catalogo.md          ← los 83 programas con su ID de winget (generado)
+│   ├── catalogo.md          ← los 83 programas con su ID de winget (generado con -Modo Catalogo)
 │   ├── perfiles.md          ← cómo se crean y se usan los perfiles JSON
 │   └── problemas.md         ← errores frecuentes y cómo salir de ellos
-├── log/                     ← un .log con marca de tiempo por ejecución
+├── log/                     ← un .log por ejecución (se conservan los 20 últimos)
 └── perfiles/                ← 5 perfiles de ejemplo + los que exportes (JSON)
 ```
 
@@ -145,6 +150,9 @@ misma instalación.
   quieras con la **opción 5 del menú** o `-Modo Verificar`: recorre catálogo,
   perfiles rápidos y `perfiles\*.json`, te lista los IDs rotos y te da el
   `winget search` exacto para encontrar el sustituto.
+- **Catálogo**: si añades o quitas programas en `$script:Catalogo`, vuelve a
+  generar la documentación con `.\Instalar-Software.ps1 -Modo Catalogo` para
+  que `docs/catalogo.md` no se quede desfasado.
 
 ## Notas y límites
 
