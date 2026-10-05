@@ -4,6 +4,59 @@ Todo lo notable de este proyecto, con el formato de
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el versionado
 [SemVer](https://semver.org/lang/es/).
 
+## 1.0.1 - 2026-10-05
+
+Corrección de fallos detectados en la revisión de código.
+
+### Corregido
+
+- **El script se guardó sin BOM UTF-8** (fallo crítico). PowerShell 5.1 lee los
+  `.ps1` sin BOM con la página de códigos de Windows, así que todos los acentos
+  se interpretaban mal: los menús enseñaban `Bǭsico`, `CompresiǦn`,
+  `Configuraci??n` y los textos de resumen salían rotos. Ahora el archivo
+  empieza por BOM UTF-8 y se lee bien en cualquier equipo.
+- **`-Ayuda` no funcionaba**: llamaba a `Get-Help -LiteralPath`, un parámetro
+  que no existe, así que salía un error y no se mostraba nada.
+- **La ayuda del script era invisible**: PowerShell no reconoce el bloque
+  `<# ... #>` si queda pegado a la línea `#Requires`. Al pedir
+  `Get-Help .\Instalar-Software.ps1 -Full` solo salía la sintaxis. Ahora hay
+  una línea en blanco de separación y se muestra sinopsis, descripción,
+  parámetros, notas y ejemplos.
+- **`-Modo Limpieza` no pedía administrador**: sin `-Perfil`, el des-bloat se
+  lanzaba sin elevación y `Remove-AppxProvisionedPackage` /
+  `Remove-AppxPackage -AllUsers` fallaban con `Acceso denegado`.
+- **`-Modo Limpieza -Perfil <ruta inexistente>` se tragaba el error** y abría
+  el menú interactivo como si nada. Ahora avisa y sale con código `2`.
+- **Códigos de salida fuera del contrato**: varias funciones devolvían el
+  número de fallos (3, 7, 12…) y el script hacía `exit` con ese valor, mientras
+  que la documentación prometía `0 / 1 / 2`. Ahora se normaliza al final.
+- **La ayuda del menú escondía atajos vivos**: con perfiles rápidos la línea
+  se sobrescribía y dejaba de anunciar `a`/`n`/`i`/`g`, que seguían funcionando.
+- **`Show-Resumen` comparaba dos veces lo mismo**
+  (`-like 'YA ESTABA*' -or -like 'YA ESTABA*'`): condición muerta de copiar y
+  pegar.
+- **La consola no se restauraba al salir**: se forzaba la "selección rápida"
+  a activada aunque el usuario la tuviera desactivada. Ahora se guarda el
+  estado original y se devuelve tal cual.
+- **`Get-EstaInstalado` dependía del idioma**: solo buscaba el texto inglés
+  `No installed package found`, que en Windows en español no aparece. Ahora
+  comprueba además el código fijo `0x8A150014`, que winget no localiza.
+- **Reintentos inútiles ante un ID caducado**: si el paquete ya no existe,
+  `Install-Paquete` repetía la instalación entera (y el segundo intento se
+  lanzaba sin `--disable-interactivity`). Ahora corta al primer `0x8A150014`.
+- **Los logs crecían sin límite**: una ejecución = un archivo `.log`. Se
+  conservan los 20 más recientes.
+
+### Añadido
+
+- **`-Modo Catalogo`**: regenera `docs/catalogo.md` desde el propio script.
+  El documento decía ser "generado automáticamente" y no había ningún
+  generador; ahora el catálogo nunca se queda desfasado del código.
+- **`.gitignore`**: los `log/*.log` dejan de versionarse.
+- **`.PARAMETER Ayuda`** en la ayuda del script.
+- Los 83 IDs del catálogo se han comprobado con `-Modo Verificar`:
+  **83 correctos, 0 rotos**.
+
 ## 1.0.0 - 2026-10-05
 
 Primera versión publicada.
