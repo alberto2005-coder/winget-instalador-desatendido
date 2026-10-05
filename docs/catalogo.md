@@ -1,10 +1,10 @@
-﻿# CatÃ¡logo de programas
+﻿# Catálogo de programas
 
-Lista completa de lo que ofrece el menÃº, con su **ID de winget**. Generada automÃ¡ticamente desde `Instalar-Software.ps1` con `-Modo Catalogo` (no la edites a mano: si cambias el catÃ¡logo, vuelve a generarla).
+Lista completa de lo que ofrece el menú, con su **ID de winget**. Generada automáticamente desde `Instalar-Software.ps1` con `-Modo Catalogo` (no la edites a mano: si cambias el catálogo, vuelve a generarla).
 
-Total: **83 programas** en **11 categorÃ­as**.
+Total: **83 programas** en **11 categorías**.
 
-Para instalar cualquiera de ellos suelto, fuera del menÃº:
+Para instalar cualquiera de ellos suelto, fuera del menú:
 
 ```powershell
 winget install --id <ID> -e --accept-package-agreements --accept-source-agreements
@@ -12,7 +12,7 @@ winget install --id <ID> -e --accept-package-agreements --accept-source-agreemen
 
 ## Programas
 
-| # | Programa | ID de winget | CategorÃ­a |
+| # | Programa | ID de winget | Categoría |
 |--:|:---------|:-------------|:----------|
 | 1 | Google Chrome | `Google.Chrome` | Navegadores |
 | 2 | Mozilla Firefox | `Mozilla.Firefox` | Navegadores |
@@ -24,9 +24,9 @@ winget install --id <ID> -e --accept-package-agreements --accept-source-agreemen
 | 8 | LibreWolf | `LibreWolf.LibreWolf` | Navegadores |
 | 9 | Tor Browser | `TorProject.TorBrowser` | Navegadores |
 | 10 | Floorp | `Ablaze.Floorp` | Navegadores |
-| 11 | 7-Zip | `7zip.7zip` | CompresiÃ³n |
-| 12 | WinRAR | `RARLab.WinRAR` | CompresiÃ³n |
-| 13 | PeaZip | `Giorgiotani.Peazip` | CompresiÃ³n |
+| 11 | 7-Zip | `7zip.7zip` | Compresión |
+| 12 | WinRAR | `RARLab.WinRAR` | Compresión |
+| 13 | PeaZip | `Giorgiotani.Peazip` | Compresión |
 | 14 | VLC | `VideoLAN.VLC` | Multimedia |
 | 15 | GIMP | `GIMP.GIMP` | Multimedia |
 | 16 | OBS Studio | `OBSProject.OBSStudio` | Multimedia |
@@ -38,14 +38,14 @@ winget install --id <ID> -e --accept-package-agreements --accept-source-agreemen
 | 22 | Disney+ | `9NXQXXLFST89` | Streaming |
 | 23 | Crunchyroll | `9WZDNCRFJ15T` | Streaming |
 | 24 | Apple TV | `9NM4T8B9JQZ1` | Streaming |
-| 25 | Figma | `Figma.Figma` | DiseÃ±o y vÃ­deo |
-| 26 | Canva | `Canva.Canva` | DiseÃ±o y vÃ­deo |
-| 27 | Blender (3D) | `BlenderFoundation.Blender` | DiseÃ±o y vÃ­deo |
-| 28 | Krita (dibujo) | `KDE.Krita` | DiseÃ±o y vÃ­deo |
-| 29 | Inkscape (vector) | `Inkscape.Inkscape` | DiseÃ±o y vÃ­deo |
-| 30 | HandBrake (vÃ­deo) | `HandBrake.HandBrake` | DiseÃ±o y vÃ­deo |
+| 25 | Figma | `Figma.Figma` | Diseño y vídeo |
+| 26 | Canva | `Canva.Canva` | Diseño y vídeo |
+| 27 | Blender (3D) | `BlenderFoundation.Blender` | Diseño y vídeo |
+| 28 | Krita (dibujo) | `KDE.Krita` | Diseño y vídeo |
+| 29 | Inkscape (vector) | `Inkscape.Inkscape` | Diseño y vídeo |
+| 30 | HandBrake (vídeo) | `HandBrake.HandBrake` | Diseño y vídeo |
 | 31 | Notepad++ | `Notepad++.Notepad++` | Utilidades |
-| 32 | Everything (bÃºsqueda) | `voidtools.Everything` | Utilidades |
+| 32 | Everything (búsqueda) | `voidtools.Everything` | Utilidades |
 | 33 | PowerToys | `Microsoft.PowerToys` | Utilidades |
 | 34 | Windows Terminal | `Microsoft.WindowsTerminal` | Utilidades |
 | 35 | ShareX | `ShareX.ShareX` | Utilidades |
@@ -86,40 +86,40 @@ winget install --id <ID> -e --accept-package-agreements --accept-source-agreemen
 | 70 | Zotero (referencias) | `DigitalScholar.Zotero` | Estudio |
 | 71 | Notion | `Notion.Notion` | Estudio |
 | 72 | Obsidian (notas) | `Obsidian.Obsidian` | Estudio |
-| 73 | LibreOffice | `TheDocumentFoundation.LibreOffice` | OfimÃ¡tica |
-| 74 | ONLYOFFICE | `ONLYOFFICE.DesktopEditors` | OfimÃ¡tica |
-| 75 | Microsoft 365 | `Microsoft.Office` | OfimÃ¡tica |
-| 76 | Discord | `Discord.Discord` | ComunicaciÃ³n |
-| 77 | Telegram | `Telegram.TelegramDesktop` | ComunicaciÃ³n |
-| 78 | Slack | `SlackTechnologies.Slack` | ComunicaciÃ³n |
-| 79 | Zoom | `Zoom.Zoom` | ComunicaciÃ³n |
-| 80 | WhatsApp | `9NKSQGP7F2NH` | ComunicaciÃ³n |
-| 81 | Microsoft Teams | `Microsoft.Teams` | ComunicaciÃ³n |
-| 82 | Thunderbird (correo) | `Mozilla.Thunderbird` | ComunicaciÃ³n |
-| 83 | Signal | `OpenWhisperSystems.Signal` | ComunicaciÃ³n |
+| 73 | LibreOffice | `TheDocumentFoundation.LibreOffice` | Ofimática |
+| 74 | ONLYOFFICE | `ONLYOFFICE.DesktopEditors` | Ofimática |
+| 75 | Microsoft 365 | `Microsoft.Office` | Ofimática |
+| 76 | Discord | `Discord.Discord` | Comunicación |
+| 77 | Telegram | `Telegram.TelegramDesktop` | Comunicación |
+| 78 | Slack | `SlackTechnologies.Slack` | Comunicación |
+| 79 | Zoom | `Zoom.Zoom` | Comunicación |
+| 80 | WhatsApp | `9NKSQGP7F2NH` | Comunicación |
+| 81 | Microsoft Teams | `Microsoft.Teams` | Comunicación |
+| 82 | Thunderbird (correo) | `Mozilla.Thunderbird` | Comunicación |
+| 83 | Signal | `OpenWhisperSystems.Signal` | Comunicación |
 
-## Perfiles rÃ¡pidos (teclas 1-9 dentro del menÃº)
+## Perfiles rápidos (teclas 1-9 dentro del menú)
 
 | Tecla | Perfil | Programas |
 |--:|:-------|:----------|
-| 1 | BÃ¡sico | Google Chrome, 7-Zip, VLC, Notepad++, Everything (bÃºsqueda), PowerToys, Bitwarden |
+| 1 | Básico | Google Chrome, 7-Zip, VLC, Notepad++, Everything (búsqueda), PowerToys, Bitwarden |
 | 2 | Gaming | Steam, Epic Games Launcher, Discord, Spotify, qBittorrent |
 | 3 | Desarrollo | Git, Visual Studio Code, Python 3.12, Node.js, Windows Terminal, PowerShell 7 |
-| 4 | OfimÃ¡tica | LibreOffice, GIMP, IrfanView |
-| 5 | ComunicaciÃ³n | Discord, Telegram, Slack, Zoom |
+| 4 | Ofimática | LibreOffice, GIMP, IrfanView |
+| 5 | Comunicación | Discord, Telegram, Slack, Zoom |
 | 6 | Streaming | Netflix, Prime Video, Disney+, Crunchyroll, Apple TV |
 
-Los perfiles rÃ¡pidos son listas de IDs: si marcas un programa nuevo y quieres
-que salga en uno de ellos, se aÃ±ade en `$script:Preajustes`.
+Los perfiles rápidos son listas de IDs: si marcas un programa nuevo y quieres
+que salga en uno de ellos, se añade en `$script:Preajustes`.
 
-## Apps preinstaladas (opciÃ³n 4: des-bloat)
+## Apps preinstaladas (opción 4: des-bloat)
 
-33 apps repartidas en 3 grupos. Cada entrada trae nombre, patrÃ³n de
-bÃºsqueda y si viene marcada por defecto (solo las que son ruido).
+33 apps repartidas en 3 grupos. Cada entrada trae nombre, patrón de
+búsqueda y si viene marcada por defecto (solo las que son ruido).
 
 | Grupo | Apps | Marcadas por defecto |
 |:------|-----:|---------------------:|
 | Patrocinadas / anuncios | 7 | 6 |
 | Apps de Microsoft (opcionales) | 19 | 15 |
-| Xbox y multimedia (dÃ©jalos si los usas) | 7 | 1 |
+| Xbox y multimedia (déjalos si los usas) | 7 | 1 |
 
