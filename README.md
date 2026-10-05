@@ -52,7 +52,7 @@ otras ventanas. Para forzar un tamaño:
 1. **Instalar programas (elige categoría)** — dos pasos: primero eliges la
    categoría (lista corta) y después solo se listan sus programas. `Esc` en el
    paso 2 vuelve a las categorías.
-2. **Importar perfil JSON e instalar** — desatendido a partir de un perfil guardado.
+2. **Importar perfil JSON e instalar** — desatendido a partir de un perfil guardado (instala los paquetes y aplica el des-bloat automáticamente).
 3. **Actualizar todo** — `winget upgrade --all` con confirmación previa.
 4. **Quitar apps preinstaladas** — des-bloat (Candy Crush, noticias, Cortana…);
    la selección por defecto solo marca las que son ruido.
@@ -62,15 +62,17 @@ otras ventanas. Para forzar un tamaño:
 ## Modos de línea de comandos
 
 ```powershell
-# Instalación totalmente desatendida desde un perfil
+# Instalación totalmente desatendida desde un perfil (instala los paquetes Y quita el bloat)
 .\Instalar-Software.ps1 -Modo Instalar -Perfil .\perfiles\gaming.json
 
 # Actualizar todo lo instalado
 .\Instalar-Software.ps1 -Modo Actualizar
 
-# Des-bloat (menú interactivo; -Modo Limpieza con -Perfil usaría la lista
-# "bloat" de ese JSON, y los perfiles de ejemplo traen esa lista vacía)
+# Des-bloat interactivo (puedes guardar tu selección de limpieza pulsando la tecla 'X')
 .\Instalar-Software.ps1 -Modo Limpieza
+
+# Aplicar SOLO la limpieza "bloat" de un perfil, sin instalar sus paquetes
+.\Instalar-Software.ps1 -Modo Limpieza -Perfil .\perfiles\gaming.json
 
 # Comprobar que ningún ID del catálogo/perfiles haya cambiado en winget
 .\Instalar-Software.ps1 -Modo Verificar
