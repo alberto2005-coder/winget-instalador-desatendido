@@ -772,6 +772,49 @@ function Get-EstaInstalado {
 # ---------------------------------------------------------------------------
 #  INSTALACIÓN
 # ---------------------------------------------------------------------------
+function Show-AyudaIdInexistente {
+    # Ayuda al usuario cuando teclea un ID que winget no conoce.
+    param([Parameter(Mandatory)][string]$Id)
+
+    $partes = @($Id -split '[.\s]+' | Where-Object { $_ })
+    $consulta = $Id
+    if ($partes.Count -gt 0) { $consulta = $partes[$partes.Count - 1] }
+
+    # 1) ¿Es en realidad un nombre del catalogo de des-bloat?
+    $esBloat = $false
+    foreach ($g in $script:BloatCatalogo.Keys) {
+        foreach ($b in $script:BloatCatalogo[$g]) {
+            if ($b.Patron -eq $Id -or $b.Nombre -eq $Id) { $esBloat = $true; break }
+        }
+        if ($esBloat) { break }
+    }
+    if ($esBloat) {
+        Write-Host '      Aviso: ese es el nombre de una app preinstalada (menu des-bloat), no un ID de winget.' -ForegroundColor Yellow
+        Write-Log ("SUGERENCIA: {0} es un patron del catalogo de des-bloat, no un ID de winget" -f $Id) 'AVISO'
+    }
+
+    # 2) Buscar alternativas reales en winget
+    $sug = Invoke-Winget -Argumentos @('search', $consulta, '--disable-interactivity', '--accept-source-agreements')
+    $filas = @($sug.Salida -split "`r?`n" |
+        Where-Object { $_.Trim() -ne '' } |
+        Select-Object -Skip 2 -First 3)
+    $n = 0
+    foreach ($f in $filas) {
+        $c = @($f -split '\s{2,}' | Where-Object { $_ })
+        if ($c.Count -ge 2) {
+            $n++
+            Write-Host ('      {0}) {1}  ->  {2}' -f $n, $c[0].Trim(), $c[1].Trim()) -ForegroundColor DarkYellow
+        }
+    }
+    if ($n -eq 0) {
+        Write-Host ('      El ID "{0}" no existe en winget; tampoco hay parecidos para "{1}".' -f $Id, $consulta) -ForegroundColor Yellow
+        Write-Host '      Si es una app de la Tienda, buscala con:  winget search <nombre>' -ForegroundColor DarkGray
+    } else {
+        Write-Host '      Copia el ID correcto de la lista y vuelve a lanzar la instalacion.' -ForegroundColor DarkGray
+    }
+    Write-Log ("SUGERENCIAS para {0} (consulta '{1}'): {2}" -f $Id, $consulta, $n) 'AVISO'
+}
+
 function Install-Paquete {
     [CmdletBinding()]
     param(
@@ -793,6 +836,7 @@ function Install-Paquete {
     }
 
     $ultimoCodigo = $null
+    $idInexistente = $false
     for ($intento = 1; $intento -le $Reintentos; $intento++) {
         $argumentos = @($base)
         # El primer intento exige modo no interactivo; si falla (winget antiguo
@@ -817,6 +861,8 @@ function Install-Paquete {
         # entrada). Se falla directamente.
         if ($r.Codigo -eq -1978335212 -or $r.Salida -match 'No package found') {
             Write-Log ("ID inexistente en winget: {0}" -f $Id) 'ERROR'
+            $idInexistente = $true
+            Show-AyudaIdInexistente -Id $Id
             break
         }
         Write-Log ("Intento {0} fallo para {1} (codigo {2})" -f $intento, $Id, $r.Codigo) 'AVISO'
@@ -824,6 +870,7 @@ function Install-Paquete {
         Start-Sleep -Seconds 2
     }
     Write-Log ("FALLO {0} (codigo {1})" -f $Id, $ultimoCodigo) 'ERROR'
+    if ($idInexistente) { return 'FALLÓ (ID inexistente)' }
     return ('FALLÓ ({0})' -f $ultimoCodigo)
 }
 
@@ -866,6 +913,11 @@ function Invoke-Instalacion {
         foreach ($i in $Ids) { Write-Host ('   - ' + $i) }
         Write-Host ''
         $resp = Read-Host '  Continuar? (S/n)'
+        # EOF: no se instala nada sin confirmacion (el vacio normal si vale como "si").
+        if ($null -eq $resp) {
+            Write-Host '  Entrada cerrada (EOF): no se instala nada.' -ForegroundColor Yellow
+            return 0
+        }
         if ($resp -and $resp -notmatch '^[sS]') {
             Write-Host '  Cancelado por el usuario.' -ForegroundColor Yellow
             return 0
@@ -959,6 +1011,11 @@ function Invoke-DesBloatPerfil {
         Write-Host ('Se quitaran {0} app(s) de bloat:' -f $patrones.Count) -ForegroundColor Cyan
         foreach ($patron in $patrones) { Write-Host ('   - ' + $patron) }
         $resp = Read-Host '  Continuar? (S/n)'
+        # EOF: quitar apps con la entrada cortada seria irreversible.
+        if ($null -eq $resp) {
+            Write-Host '  Entrada cerrada (EOF): no se quita nada.' -ForegroundColor Yellow
+            return 0
+        }
         if ($resp -and $resp -notmatch '^[sS]') {
             Write-Host '  Cancelado.' -ForegroundColor Yellow
             return 0
@@ -1001,6 +1058,7 @@ function Invoke-Actualizacion {
 
         Write-Host ''
         $resp = Read-Host '  Actualizar todo ahora? (S/n)'
+        if ($null -eq $resp) { Write-Host '  Entrada cerrada (EOF): no se actualiza.' -ForegroundColor Yellow; return 0 }
         if ($resp -and $resp -notmatch '^[sS]') { Write-Host '  Cancelado.' -ForegroundColor Yellow; return 0 }
 
         Write-Host ''
@@ -1448,15 +1506,55 @@ function Get-ElementosProgramas {
     return , $lista
 }
 
+function Get-BloatPresente {
+    # Devuelve un HashSet con los nombres de apps Appx realmente presentes en
+    # el equipo: instaladas (cualquier usuario) + aprovisionadas para nuevos.
+    $nombres = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    try {
+        foreach ($x in @(Get-AppxPackage -AllUsers -ErrorAction Stop)) { [void]$nombres.Add([string]$x.Name) }
+        $script:BloatFuente = 'todos los usuarios'
+    } catch {
+        $script:BloatFuente = 'tu usuario'
+        try {
+            foreach ($x in @(Get-AppxPackage -ErrorAction SilentlyContinue)) { [void]$nombres.Add([string]$x.Name) }
+        } catch { }
+    }
+    try {
+        foreach ($x in @(Get-AppxProvisionedPackage -Online -ErrorAction Stop)) { [void]$nombres.Add([string]$x.DisplayName) }
+    } catch { }
+    return , $nombres
+}
+
 function Get-ElementosBloat {
-    param([string[]]$PorDefecto = @())
+    param([string[]]$PorDefecto = @(), [switch]$SoloInstaladas)
+    $presentes = $null
+    if ($SoloInstaladas) { $presentes = Get-BloatPresente }
+
     $lista = New-Object System.Collections.ArrayList
+    $ocultas = 0
     foreach ($grupo in $script:BloatCatalogo.Keys) {
-        [void]$lista.Add([pscustomobject]@{ Tipo = 'cab'; Nombre = $grupo; Id = ''; Grupo = $grupo })
+        $visibles = @()
         foreach ($b in $script:BloatCatalogo[$grupo]) {
+            if ($presentes) {
+                $esta = $false
+                $base = [string]$b.Patron
+                foreach ($n in $presentes) {
+                    if ($n -like $base -or $n -like ('*' + $base.Trim('*') + '*') -or $base -like ('*' + $n + '*')) {
+                        $esta = $true
+                        break
+                    }
+                }
+                if (-not $esta) { $ocultas++; continue }
+            }
+            $visibles += $b
+        }
+        if ($visibles.Count -eq 0) { continue }
+        [void]$lista.Add([pscustomobject]@{ Tipo = 'cab'; Nombre = $grupo; Id = ''; Grupo = $grupo })
+        foreach ($b in $visibles) {
             [void]$lista.Add([pscustomobject]@{ Tipo = 'item'; Nombre = $b.Nombre; Id = $b.Patron; Grupo = $grupo })
         }
     }
+    $script:BloatOcultas = $ocultas
     return , $lista
 }
 
@@ -1590,10 +1688,35 @@ function Opcion-Importar {
 }
 
 function Opcion-Limpieza {
-    $elementos = Get-ElementosBloat
-    $inicial = Get-Preseleccion -Elementos $elementos -PorDefecto
     Write-Host ''
     Write-Host '  DES-BLOAT: quita apps preinstaladas de Windows.' -ForegroundColor Cyan
+    Write-Host '  Analizando que hay instalado en este equipo...' -ForegroundColor DarkGray
+
+    $totCatalogo = 0
+    foreach ($g in $script:BloatCatalogo.Keys) { $totCatalogo += @($script:BloatCatalogo[$g]).Count }
+
+    $elementos = Get-ElementosBloat -SoloInstaladas
+    $visibles = @($elementos | Where-Object { $_.Tipo -eq 'item' }).Count
+    # Get-BloatPresente anota en BloatFuente hasta donde ha podido mirar: con
+    # administrador ve todos los usuarios, sin el solo el actual.
+    $fuente = $script:BloatFuente
+    if (-not $fuente) { $fuente = 'no determinada' }
+    if ($visibles -eq 0) {
+        Write-Host ('  No se detecto ninguna del catalogo: se listan las {0} por si acaso.' -f $totCatalogo) -ForegroundColor Yellow
+        Write-Log ("Des-bloat: ninguna del catalogo ({0}) esta instalada ({1}); se lista el catalogo completo" -f $totCatalogo, $fuente) 'AVISO'
+        $elementos = Get-ElementosBloat
+    } else {
+        $ocultas = $totCatalogo - $visibles
+        Write-Host ('  Detectadas {0} de {1} apps del catalogo en este equipo ({2} no instaladas, ocultas).' -f $visibles, $totCatalogo, $ocultas) -ForegroundColor DarkGray
+        Write-Log ("Des-bloat: detectadas {0} de {1} apps instaladas del catalogo ({2} ocultas, fuente: {3})" -f $visibles, $totCatalogo, $ocultas, $fuente)
+        if ($ocultas -gt 0) { Write-Host '  Si ves que falta alguna, anadela con la tecla g.' -ForegroundColor DarkGray }
+    }
+    if ($fuente -eq 'tu usuario') {
+        Write-Host '  Sin administrador: solo se revisa tu cuenta. Ejecuta INICIAR.bat para mirar todos los usuarios.' -ForegroundColor DarkYellow
+        Write-Log 'Des-bloat: deteccion limitada al usuario actual (sin administrador)' 'AVISO'
+    }
+
+    $inicial = Get-Preseleccion -Elementos $elementos -PorDefecto
     Write-Host '  Seleccion predeterminada = las que solo son ruido.' -ForegroundColor DarkGray
     Show-Leyenda -Preajustes $null
     $r = Invoke-MenuConsola -Titulo 'APPS A QUITAR  (dejadas las que no quieras tocar)' `
@@ -1608,6 +1731,8 @@ function Opcion-Limpieza {
     Write-Host ('  Se quitaran {0} app(s):' -f $patrones.Count) -ForegroundColor Cyan
     foreach ($p in $patrones) { Write-Host ('   - ' + $p.Nombre) }
     $resp = Read-Host '  Continuar? (S/n)'
+    # EOF: quitar apps con la entrada cortada seria irreversible.
+    if ($null -eq $resp) { Write-Host '  Entrada cerrada (EOF): no se quita nada.' -ForegroundColor Yellow; return 0 }
     if ($resp -and $resp -notmatch '^[sS]') { Write-Host '  Cancelado.' -ForegroundColor Yellow; return 0 }
 
     $resultados = New-Object System.Collections.ArrayList
@@ -1725,6 +1850,12 @@ function Show-MenuPrincipal {
         if (-not (Test-Elevado)) { Write-Host '   (sin admin: instalaciones limitadas al usuario actual)' -ForegroundColor DarkYellow }
         Write-Host ''
         $op = Read-Host '   Opcion'
+        # Sin entrada (EOF) Read-Host devuelve $null: el switch cae en "default"
+        # sin avisar y el menu giraba sin fin. Se sale limpiamente.
+        if ($null -eq $op) {
+            Write-Host '  Entrada cerrada (EOF). Saliendo.' -ForegroundColor DarkGray
+            return 0
+        }
         $fallas = 0
         switch ($op) {
             '1' { $fallas = Opcion-Instalar }
@@ -1739,7 +1870,8 @@ function Show-MenuPrincipal {
         }
         if ($fallas -gt 0) { Write-Host ('   Se han producido ' + $fallas + ' error(es). Revisa el log.') -ForegroundColor Red }
         Write-Host ''
-        try { $null = Read-Host '   Pulsa Enter para volver al menu' } catch { return $fallas }
+        try { $pulsa = Read-Host '   Pulsa Enter para volver al menu' } catch { return $fallas }
+        if ($null -eq $pulsa) { return $fallas }
     }
 }
 

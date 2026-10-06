@@ -54,8 +54,11 @@ otras ventanas. Para forzar un tamaño:
    paso 2 vuelve a las categorías.
 2. **Importar perfil JSON e instalar** — desatendido a partir de un perfil guardado (instala los paquetes y aplica el des-bloat automáticamente).
 3. **Actualizar todo** — `winget upgrade --all` con confirmación previa.
-4. **Quitar apps preinstaladas** — des-bloat (Candy Crush, noticias, Cortana…);
-   la selección por defecto solo marca las que son ruido.
+4. **Quitar apps preinstaladas** — des-bloat (Candy Crush, noticias, Cortana…).
+   Antes de enseñar el menú **analiza el equipo y se queda solo con las que hay
+   de verdad instaladas** (te enseña `Detectadas X de 33`); si no encuentra
+   ninguna, se listan las 33 completas por si acaso y lo que falte lo añades a
+   mano con la tecla `g`. La selección por defecto marca las que son ruido.
 5. **Comprobar los IDs del catálogo** — valida uno a uno todos los IDs con
    `winget show` y te dice cuáles han dejado de existir (y cómo buscar el nuevo).
 
@@ -156,6 +159,11 @@ misma instalación.
 
 ## Notas y límites
 
+- **Si tecleas un ID que no existe** (tecla `G`), el script no se limita a
+  fallar: comprueba si es en realidad el nombre de una app del des-bloat (esas
+  no las instala winget, son para quitar) y, si no lo es, lanza
+  `winget search` solo y te propone hasta 3 parecidos. En el resumen verás
+  `FALLÓ (ID inexistente)`.
 - **Apps de la Microsoft Store** (Netflix, Prime Video, Disney+, Crunchyroll,
   Apple TV, WhatsApp, Revo Uninstaller): llevan ID de tienda (`9...`) porque
   solo se distribuyen allí. Van con la fuente `msstore`, que Windows trae

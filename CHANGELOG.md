@@ -4,6 +4,54 @@ Todo lo notable de este proyecto, con el formato de
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el versionado
 [SemVer](https://semver.org/lang/es/).
 
+## 1.1.0 - 2026-10-06
+
+El des-bloat distingue lo que hay de verdad en el equipo, el script te echa una
+mano cuando tecleas un ID que no existe y ya no se queda girando con la entrada
+cortada. Ciclo probado de punta a punta en Windows 11: instalar Clipchamp desde
+la fuente `msstore`, detectarlo en la opción 4 y quitarlo.
+
+### Cambiado
+
+- **La opción 4 (des-bloat) solo lista las apps que hay realmente instaladas**:
+  antes de pintar el menú consulta los paquetes Appx con
+  `Get-AppxPackage -AllUsers` y `Get-AppxProvisionedPackage -Online`, y enseña
+  `Detectadas X de 33 (Y no instaladas, ocultas)`. Antes salían las 33 con las
+  de ruido marcadas a ciegas: en un PC limpio el menú se llenaba de apps que no
+  existían. Si no coincide ninguna, se listan las 33 completas como hasta ahora
+  y se avisa; lo que falte se añade a mano con la tecla `g`. El emparejamiento
+  respeta los patrones del catálogo (`Amazon*`,
+  `king.com.CandyCrushSaga`…), no solo los nombres exactos.
+- **Sin administrador se dice a la cara**: `Get-BloatPresente` anota hasta dónde
+  ha podido mirar, y si solo fue tu cuenta el menú lo indica (antes ese detalle
+  no aparecía en ninguna parte y la detección parecía definitiva).
+
+### Corregido
+
+- **Bucle infinito con la entrada cerrada (EOF)**: sin datos en la entrada,
+  `Read-Host` devuelve `$null`, el `switch` del menú cae en `default` sin avisar
+  y el menú se volvía a dibujar sin parar: se midieron **32011 vueltas y 33 MB**
+  en un solo arranque. Ahora sale limpio con código `0`, igual que el resto de
+  las pantallas.
+- **Las confirmaciones se adelantaban solas con la entrada cortada**: el `$null`
+  del EOF se interpretaba como "sí por defecto", así que una instalación, una
+  limpieza o `winget upgrade --all` podían arrancar sin que nadie hubiera
+  respondido. Las cuatro preguntas cancelan ahora con EOF; lo que sigue
+  valiendo como "sí" es pulsar `Enter` (cadena vacía), como hasta ahora.
+
+### Añadido
+
+- **Ayuda cuando el ID no existe**: `Show-AyudaIdInexistente` (llamada por
+  `Install-Paquete` ante el `0x8A150014`) comprueba si el ID es en realidad un
+  patrón del catálogo de des-bloat —avisa de que es el nombre de una app
+  preinstalada y no algo que winget sepa instalar— y si no, lanza
+  `winget search` con el último segmento del ID para proponer hasta 3
+  alternativas. El resumen pasa de `FALLÓ (-1978335212)` a
+  `FALLÓ (ID inexistente)`, que sigue contando como fallo.
+- **El log del des-bloat anota la detección**: `detectadas X de Y apps
+  instaladas del catalogo` con la fuente consultada, y aviso aparte cuando la
+  detección quedó limitada al usuario actual.
+
 ## 1.0.1 - 2026-10-05
 
 Corrección de fallos detectados en la revisión de código.

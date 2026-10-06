@@ -9,11 +9,24 @@ nada**, es un texto plano y se puede pegar en un issue.
 ## 1. Un programa no se instala: `0x8A150014` / `No package found`
 
 **Causa**: winget ha renombrado o retirado ese paquete (le pasa a cualquiera:
-antes era `NodeJS.NodeJS` y ahora es `OpenJS.NodeJS`).
+antes era `NodeJS.NodeJS` y ahora es `OpenJS.NodeJS`), o has escrito un nombre
+que no es un ID de winget: los del des-bloat (`Microsoft.MicrosoftSolitaireCollection`)
+son nombres Appx para **quitar** apps, winget no instala por ellos.
+
+**El script ya te ayuda en el momento**: corta al primer `0x8A150014` (no gasta
+el segundo intento), avisa si el ID es un patrón del des-bloat y, si no lo es,
+lanza `winget search` solo y propone hasta 3 parecidos:
+
+```
+      Aviso: ese es el nombre de una app preinstalada (menu des-bloat), no un ID de winget.
+      1) Node.js  ->  OpenJS.NodeJS
+      Copia el ID correcto de la lista y vuelve a lanzar la instalacion.
+```
 
 **Solución**:
 
-1. Menú principal → **5) Comprobar que los IDs del catálogo sigan valiendo**
+1. Copia uno de los IDs propuestos, o comprueba el catálogo entero con
+   **5) Comprobar que los IDs del catálogo sigan valiendo**
    (o `.\Instalar-Software.ps1 -Modo Verificar`).
 2. Te lista los IDs rotos y el comando exacto para buscar el sustituto:
    `winget search <nombre>`.
