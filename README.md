@@ -194,3 +194,47 @@ Guía completa en [docs/problemas.md](docs/problemas.md).
 ## Licencia
 
 [MIT](LICENSE). Úsalo, cópialo y modifícalo libremente.
+
+---
+
+# English Version
+
+## Overview
+
+This project installs all the programs you select, silently and in one go, from a
+console menu with checkboxes. It includes bloat removal, JSON profiles, bulk
+updates, and detailed logging.
+
+## Quick start
+
+Double-click **`INICIAR.bat`** → accept the UAC prompt → mark items with `Space` → `Enter`.
+
+The script already requests elevation for you, so there is no need to change system policies.
+
+From PowerShell:
+
+```powershell
+cd $env:USERPROFILE\Downloads\InstaladorWinget
+.\Instalar-Software.ps1
+```
+
+## Features
+
+- Install multiple apps from winget catalogs
+- Remove preinstalled apps and bloatware
+- Update everything installed
+- Validate IDs and detect broken package names
+- Save reusable JSON profiles
+- Run fully unattended from a profile
+
+## Typical commands
+
+```powershell
+.\Instalar-Software.ps1 -Modo Instalar -Perfil .\perfiles\gaming.json
+.\Instalar-Software.ps1 -Modo Actualizar
+.\Instalar-Software.ps1 -Modo Limpieza
+.\Instalar-Software.ps1 -Modo Verificar
+.\Instalar-Software.ps1 -Modo Catalogo
+```
+
+This README is bilingual: the original Spanish version remains first, and the English version is provided below for cross-language usability.
