@@ -1,89 +1,118 @@
-# Instalador de software desatendido con winget
+# Instalador desatendido con winget
 
-Instala todos los programas que marques, **en silencio y de un tirón**, desde un
-menú de consola con casillas. Incluye des-bloat, perfiles JSON, actualización
-masiva y log completo.
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?logo=powershell&logoColor=white)](https://learn.microsoft.com/powershell/)
+[![Windows](https://img.shields.io/badge/Windows-10%201809%2B%20%7C%2011-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![winget](https://img.shields.io/badge/winget-App%20Installer-00B4D8)](https://learn.microsoft.com/windows/package-manager/)
+[![MIT](https://img.shields.io/badge/Licencia-MIT-green)](LICENSE)
 
-## Uso rápido
+[Español](#español) · [English](#english)
 
-Doble clic en **`INICIAR.bat`** → acepta la ventana UAC → marcas con `Espacio` → `Enter`.
+---
 
-> El `.bat` ya pide administrador por ti (una sola ventana) y salta la política
-> de ejecución de scripts, así que no hace falta tocar nada más.
+## Español
 
-O desde PowerShell:
+### Índice
+
+- [Descripción](#descripción)
+- [Inicio rápido](#inicio-rápido)
+- [Requisitos](#requisitos)
+- [Teclas del menú](#teclas-del-menú)
+- [Opciones del menú principal](#opciones-del-menú-principal)
+- [Modos de línea de comandos](#modos-de-línea-de-comandos)
+- [Perfiles JSON](#perfiles-json)
+- [Des-bloat](#des-bloat)
+- [Comprobación de IDs](#comprobación-de-ids)
+- [Logs y códigos de salida](#logs-y-códigos-de-salida)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Documentación](#documentación)
+- [Notas y límites](#notas-y-límites)
+- [Licencia](#licencia)
+
+### Descripción
+
+Script de **PowerShell** para Windows que instala de golpe, **en silencio y sin interacción**, los programas que marques en un menú de consola con casillas. Incluye un **catálogo de 83 programas en 11 categorías**, cinco perfiles de ejemplo, eliminación de aplicaciones preinstaladas (*des-bloat*), actualización masiva, verificación de identificadores de winget y registro completo en `log/`.
+
+La idea es reconstruir un equipo recién formateado en una sola pasada: marcas lo que quieres, pulsas `Enter` y el script instala todo con `--silent` y acepta los acuerdos de licencia por ti.
+
+### Inicio rápido
+
+1. Descarga el repositorio.
+2. Doble clic en **`INICIAR.bat`**.
+3. Acepta la ventana de UAC (el `.bat` ya pide administrador y evita bloqueos de la política de ejecución).
+4. Marca con `Espacio`, confirma con `Enter`.
+
+Desde PowerShell:
 
 ```powershell
 cd $env:USERPROFILE\Downloads\InstaladorWinget
 .\Instalar-Software.ps1
 ```
 
-**Requisitos**: Windows 10 (1809 o superior) o Windows 11 con PowerShell 5.1
-(ambos vienen con Windows) y winget — que el propio script instala si falta.
-No necesita conexión a internet salvo para descargar los programas.
+### Requisitos
 
-## Tamaño de la letra
+| Requisito | Detalle |
+|---|---|
+| Windows | 10 (1809 o superior) o Windows 11 |
+| PowerShell | 5.1 (viene con Windows) |
+| winget | *App Installer*; el script lo instala si falta |
+| Conexión | Solo para descargar los programas |
 
-Windows abre la ventana con una letra diminuta. El script la agranda solo
-(mínimo 18 px) y ajusta la ventana a tu pantalla; no toca la configuración de
-otras ventanas. Para forzar un tamaño:
+Si winget no está presente, el script descarga *App Installer* con sus dependencias (VCLibs y Windows App Runtime) desde la release oficial de GitHub.
 
-```powershell
-.\Instalar-Software.ps1 -Fuente 24      # alto en píxeles (0 = automático)
-```
-
-## Teclas del menú
+### Teclas del menú
 
 | Tecla | Acción |
 |---|---|
 | `↑` `↓` `PgUp` `PgDn` `Home` `End` | Mover el cursor |
 | `Espacio` | Marcar / desmarcar |
 | `Enter` | Instalar lo marcado |
-| `Esc` | Cancelar |
+| `Esc` | Cancelar (en el paso 2 vuelve a las categorías) |
 | `A` | Marcar todos |
 | `N` | Ninguno |
 | `I` | Invertir selección |
-| `G` | Añadir un ID de winget a mano (el que quieras) |
+| `G` | Añadir a mano un ID de winget |
 | `X` | Guardar la selección como perfil JSON |
-| `1`–`6` | Perfil rápido (Básico, Gaming, Desarrollo, Ofimática, Comunicación, Streaming) — solo en el paso 2 |
+| `1`–`6` | Perfil rápido: Básico, Gaming, Desarrollo, Ofimática, Comunicación, Streaming |
 
-## Opciones del menú principal
-
-1. **Instalar programas (elige categoría)** — dos pasos: primero eliges la
-   categoría (lista corta) y después solo se listan sus programas. `Esc` en el
-   paso 2 vuelve a las categorías.
-2. **Importar perfil JSON e instalar** — desatendido a partir de un perfil guardado (instala los paquetes y aplica el des-bloat automáticamente).
-3. **Actualizar todo** — `winget upgrade --all` con confirmación previa.
-4. **Quitar apps preinstaladas** — des-bloat (Candy Crush, noticias, Cortana…).
-   Antes de enseñar el menú **analiza el equipo y se queda solo con las que hay
-   de verdad instaladas** (te enseña `Detectadas X de 33`); si no encuentra
-   ninguna, se listan las 33 completas por si acaso y lo que falte lo añades a
-   mano con la tecla `g`. La selección por defecto marca las que son ruido.
-5. **Comprobar los IDs del catálogo** — valida uno a uno todos los IDs con
-   `winget show` y te dice cuáles han dejado de existir (y cómo buscar el nuevo).
-
-## Modos de línea de comandos
+La ventana ajusta la fuente automáticamente (mínimo 18 px) para que no aparezca diminuta. Puedes forzar el tamaño:
 
 ```powershell
-# Instalación totalmente desatendida desde un perfil (instala los paquetes Y quita el bloat)
+.\Instalar-Software.ps1 -Fuente 24   # alto en píxeles (0 = automático)
+```
+
+### Opciones del menú principal
+
+1. **Instalar programas (elige categoría)** — dos pasos: primero la categoría y después solo sus programas.
+2. **Importar perfil JSON e instalar** — instala los paquetes del perfil y aplica su des-bloat, sin preguntar.
+3. **Actualizar todo** — `winget upgrade --all` con confirmación previa.
+4. **Quitar apps preinstaladas** — analiza el equipo y muestra solo las que están realmente instaladas (`Detectadas X de 33`); si no encuentra ninguna, lista las 33 completas. La selección por defecto marca las que son ruido.
+5. **Comprobar los IDs del catálogo** — valida uno a uno con `winget show` y avisa de los que ya no existen.
+
+### Modos de línea de comandos
+
+```powershell
+# Instalación desatendida completa desde un perfil (paquetes + des-bloat)
 .\Instalar-Software.ps1 -Modo Instalar -Perfil .\perfiles\gaming.json
 
 # Actualizar todo lo instalado
 .\Instalar-Software.ps1 -Modo Actualizar
 
-# Des-bloat interactivo (puedes guardar tu selección de limpieza pulsando la tecla 'X')
+# Des-bloat interactivo (la tecla 'X' guarda la selección)
 .\Instalar-Software.ps1 -Modo Limpieza
 
-# Aplicar SOLO la limpieza "bloat" de un perfil, sin instalar sus paquetes
+# Solo la limpieza de un perfil, sin instalar sus paquetes
 .\Instalar-Software.ps1 -Modo Limpieza -Perfil .\perfiles\gaming.json
 
-# Comprobar que ningún ID del catálogo/perfiles haya cambiado en winget
+# Comprobar que ningún ID del catálogo o de los perfiles ha cambiado
 .\Instalar-Software.ps1 -Modo Verificar
 
-# Regenerar docs/catalogo.md tras añadir o quitar programas del catálogo
+# Regenerar docs/catalogo.md tras tocar el catálogo
 .\Instalar-Software.ps1 -Modo Catalogo
+```
 
-# Opciones extra
+Opciones adicionales:
+
+```powershell
 .\Instalar-Software.ps1 -Todo                # pre-marca todo el catálogo
 .\Instalar-Software.ps1 -NoAdmin             # sin elevación (solo usuario actual)
 .\Instalar-Software.ps1 -Alcance User        # Auto | Machine | User
@@ -91,43 +120,11 @@ otras ventanas. Para forzar un tamaño:
 .\Instalar-Software.ps1 -Ayuda               # ayuda completa (Get-Help)
 ```
 
-Hay 5 perfiles de ejemplo en `perfiles\` (`basico`, `gaming`, `desarrollo`,
-`ofimatica`, `comunicacion`); con la tecla `X` guardas los tuyos al lado.
+**Alcance**: `Auto` (por defecto) no fuerza `--scope` y deja que cada instalador use su modo habitual; `Machine` instala para todos los usuarios (requiere admin) y `User` solo para la cuenta actual.
 
-Cada ejecución termina con un **código de salida**: `0` = todo bien,
-`1` = hubo fallos, `2` = error de configuración.
+### Perfiles JSON
 
-## Estructura
-
-```
-InstaladorWinget/
-├── INICIAR.bat              ← lo que se ejecuta a diario
-├── Instalar-Software.ps1    ← todo el motor
-├── README.md                ← este archivo
-├── CHANGELOG.md             ← qué cambia en cada versión
-├── LICENSE                  ← MIT
-├── .gitignore               ← no versiona los logs
-├── docs/
-│   ├── catalogo.md          ← los 83 programas con su ID de winget (generado con -Modo Catalogo)
-│   ├── perfiles.md          ← cómo se crean y se usan los perfiles JSON
-│   └── problemas.md         ← errores frecuentes y cómo salir de ellos
-├── log/                     ← un .log por ejecución (se conservan los 20 últimos)
-└── perfiles/                ← 5 perfiles de ejemplo + los que exportes (JSON)
-```
-
-## Documentación
-
-| Documento | Qué cuenta |
-|:--|:--|
-| [docs/catalogo.md](docs/catalogo.md) | Los 83 programas con su ID de winget, los perfiles rápidos y las apps del des-bloat |
-| [docs/perfiles.md](docs/perfiles.md) | El formato JSON, cómo crear un perfil con la tecla `X` y cómo ejecutarlo en otro PC |
-| [docs/problemas.md](docs/problemas.md) | Síntoma → causa → solución (IDs rotos, ventana congelada, UAC, winget ausente…) |
-| [CHANGELOG.md](CHANGELOG.md) | Qué se ha añadido y corregido en cada versión |
-
-
-## Perfil JSON
-
-Se crea con la tecla `X` dentro del menú:
+La tecla `X` guarda la selección actual como perfil reutilizable:
 
 ```json
 {
@@ -139,77 +136,104 @@ Se crea con la tecla `X` dentro del menú:
 }
 ```
 
-Cópialo a otro PC nuevo y ejecuta `-Modo Instalar -Perfil ...` para replicar la
-misma instalación.
+Copia el archivo a otro PC y ejecuta `-Modo Instalar -Perfil ...` para replicar la misma instalación. En `perfiles/` vienen cinco ejemplos: `basico`, `gaming`, `desarrollo`, `ofimatica` y `comunicacion`.
 
-## Mantenimiento: versiones e IDs
+### Des-bloat
 
-- **Versiones**: no hay que tocar nada. El script nunca fija una versión, solo
-  pone `--id`, así que winget instala siempre la última que haya en el repositorio
-  y la opción 3 del menú las actualiza todas.
-- **IDs**: winget de vez en cuando renombra un paquete (le pasa a cualquiera:
-  antes era `NodeJS.NodeJS` y ahora es `OpenJS.NodeJS`). Si eso ocurre,
-  la instalación falla con `0x8A150014 / No package found`. Comprueba cuando
-  quieras con la **opción 5 del menú** o `-Modo Verificar`: recorre catálogo,
-  perfiles rápidos y `perfiles\*.json`, te lista los IDs rotos y te da el
-  `winget search` exacto para encontrar el sustituto.
-- **Catálogo**: si añades o quitas programas en `$script:Catalogo`, vuelve a
-  generar la documentación con `.\Instalar-Software.ps1 -Modo Catalogo` para
-  que `docs/catalogo.md` no se quede desfasado.
+La opción 4 del menú y el modo `Limpieza` quitan aplicaciones preinstaladas que suelen ser ruido (Candy Crush, noticias, Cortana…). El script:
 
-## Notas y límites
+1. Analiza el equipo y filtra las que existen de verdad.
+2. Propone una selección por defecto con las prescindibles.
+3. Pide confirmación antes de desinstalar.
 
-- **Si tecleas un ID que no existe** (tecla `G`), el script no se limita a
-  fallar: comprueba si es en realidad el nombre de una app del des-bloat (esas
-  no las instala winget, son para quitar) y, si no lo es, lanza
-  `winget search` solo y te propone hasta 3 parecidos. En el resumen verás
-  `FALLÓ (ID inexistente)`.
-- **Apps de la Microsoft Store** (Netflix, Prime Video, Disney+, Crunchyroll,
-  Apple TV, WhatsApp, Revo Uninstaller): llevan ID de tienda (`9...`) porque
-  solo se distribuyen allí. Van con la fuente `msstore`, que Windows trae
-  activada; el script acepta los acuerdos solo. Ojo: para Revo hay dos IDs en
-  winget y el del repositorio (`RevoUninstaller.RevoUninstaller`) va desde 2020,
-  por eso usamos el de la tienda.
-- **Nota WhatsApp**: va con el ID de la Microsoft Store (`9NKSQGP7F2NH`), ya
-  que la app oficial solo se distribuye allí.
-- **Instaladores que ignoran `--silent`**: algunos (Steam, por ejemplo) abren su
-  asistente igualmente. Es comportamiento del instalador, no del script.
-- **winget ausente**: si tu PC no tiene winget, el script descarga e instala
-  *App Installer* con sus dependencias (VCLibs + Windows App Runtime) desde la
-  release oficial de GitHub. Requiere conexión.
-- **Si la descarga se corta**, el script reintenta y reanuda automáticamente;
-  verifica el tamaño y la integridad antes de usar el archivo.
-- **Alcance**: `Auto` (por defecto) no fuerza `--scope` y deja que cada
-  instalador use su modo habitual; `Machine` instala para todos los usuarios
-  (requiere admin) y `User` solo para tu cuenta.
+Puedes guardar tu propia lista de limpieza con la tecla `X` y aplicarla en otro equipo desde un perfil.
 
-## Contribuir y reportar fallos
+### Comprobación de IDs
 
-1. Comprueba si es un ID caducado: opción **5** del menú (o `-Modo Verificar`).
-2. Mira el `log\instalacion-*.log` de la ejecución fallida.
-3. Abre un issue con ese log y con la salida de la comprobación de IDs.
+winget renombra paquetes de vez en cuando (por ejemplo, `NodeJS.NodeJS` pasó a ser `OpenJS.NodeJS`). Cuando eso ocurre, la instalación falla con `0x8A150014 / No package found`.
 
-Guía completa en [docs/problemas.md](docs/problemas.md).
+La opción 5 del menú o `-Modo Verificar` recorre el catálogo, los perfiles rápidos y `perfiles/*.json`, lista los IDs rotos y muestra el `winget search` exacto para encontrar el sustituto.
 
-## Licencia
+Si tecleas un ID inexistente con la tecla `G`, el script comprueba si en realidad es una app del des-bloat y, si no lo es, lanza `winget search` y propone hasta tres parecidos.
 
-[MIT](LICENSE). Úsalo, cópialo y modifícalo libremente.
+### Logs y códigos de salida
+
+- Cada ejecución escribe `log\instalacion-<fecha>.log`; se conservan los **20 últimos**.
+- Códigos de salida: `0` = todo correcto, `1` = hubo fallos, `2` = error de configuración.
+
+### Estructura del proyecto
+
+```text
+winget-instalador-desatendido/
+├── INICIAR.bat              # Lanzador diario (UAC + PowerShell)
+├── Instalar-Software.ps1    # Motor: catálogo, menú, instalación y des-bloat
+├── README.md
+├── CHANGELOG.md
+├── LICENSE                  # MIT
+├── .gitignore               # Excluye log/
+├── docs/
+│   ├── catalogo.md          # Los 83 programas con su ID
+│   ├── perfiles.md          # Formato y uso de los perfiles
+│   └── problemas.md         # Síntoma → causa → solución
+├── log/                     # Registros (últimos 20)
+└── perfiles/                # 5 perfiles de ejemplo + los exportados
+```
+
+### Documentación
+
+| Documento | Contenido |
+|---|---|
+| [docs/catalogo.md](docs/catalogo.md) | Los 83 programas con su ID, perfiles rápidos y apps del des-bloat |
+| [docs/perfiles.md](docs/perfiles.md) | Formato JSON, creación con la tecla `X` y uso en otro PC |
+| [docs/problemas.md](docs/problemas.md) | IDs rotos, ventana congelada, UAC, winget ausente y más |
+| [CHANGELOG.md](CHANGELOG.md) | Cambios de cada versión |
+
+### Notas y límites
+
+- **Versiones**: el script nunca fija una versión, solo pasa `--id`, así que winget instala siempre la última disponible. La opción 3 las actualiza todas.
+- **Apps de Microsoft Store** (Netflix, Prime Video, Disney+, Crunchyroll, Apple TV, WhatsApp, Revo Uninstaller): usan IDs de tienda (`9...`) y la fuente `msstore`, que Windows trae activada. WhatsApp, por ejemplo, solo se distribuye allí (`9NKSQGP7F2NH`).
+- **Instaladores que ignoran `--silent`**: algunos, como Steam, abren su asistente igualmente. Es comportamiento del instalador, no del script.
+- **Descargas interrumpidas**: el script reintenta y reanuda, y verifica tamaño e integridad antes de usar el archivo.
+- **Catálogo**: si añades o quitas programas en `$script:Catalogo`, regenera la documentación con `-Modo Catalogo` para que `docs/catalogo.md` no quede desfasada.
+- **Sin conexión** no se puede instalar nada, aunque el menú y la ayuda funcionan.
+
+### Licencia
+
+**MIT** — consulta [LICENSE](LICENSE).
 
 ---
 
-# English Version
+## English
 
-## Overview
+### Table of contents
 
-This project installs all the programs you select, silently and in one go, from a
-console menu with checkboxes. It includes bloat removal, JSON profiles, bulk
-updates, and detailed logging.
+- [Overview](#overview)
+- [Quick start](#quick-start)
+- [Requirements](#requirements)
+- [Menu keys](#menu-keys)
+- [Main menu options](#main-menu-options)
+- [Command-line modes](#command-line-modes)
+- [JSON profiles](#json-profiles)
+- [De-bloat](#de-bloat)
+- [ID verification](#id-verification)
+- [Logs and exit codes](#logs-and-exit-codes)
+- [Project structure](#project-structure)
+- [Documentation](#documentation)
+- [Notes and limits](#notes-and-limits)
+- [License](#license)
 
-## Quick start
+### Overview
 
-Double-click **`INICIAR.bat`** → accept the UAC prompt → mark items with `Space` → `Enter`.
+A Windows **PowerShell** script that installs the programs you tick in a console checkbox menu **silently and in one go**. It ships a **catalogue of 83 programs across 11 categories**, five sample profiles, preinstalled-app removal (*de-bloat*), bulk updates, winget identifier verification and full logging to `log/`.
 
-The script already requests elevation for you, so there is no need to change system policies.
+The goal is to rebuild a freshly formatted machine in a single pass: tick what you want, press `Enter`, and the script installs everything with `--silent` and accepts licence agreements for you.
+
+### Quick start
+
+1. Download the repository.
+2. Double-click **`INICIAR.bat`**.
+3. Accept the UAC prompt (the `.bat` requests elevation and bypasses execution-policy blocks).
+4. Tick with `Space`, confirm with `Enter`.
 
 From PowerShell:
 
@@ -218,23 +242,155 @@ cd $env:USERPROFILE\Downloads\InstaladorWinget
 .\Instalar-Software.ps1
 ```
 
-## Features
+### Requirements
 
-- Install multiple apps from winget catalogs
-- Remove preinstalled apps and bloatware
-- Update everything installed
-- Validate IDs and detect broken package names
-- Save reusable JSON profiles
-- Run fully unattended from a profile
+| Requirement | Detail |
+|---|---|
+| Windows | 10 (1809 or later) or Windows 11 |
+| PowerShell | 5.1 (bundled with Windows) |
+| winget | *App Installer*; the script installs it when missing |
+| Connection | Only to download the programs |
 
-## Typical commands
+When winget is absent, the script downloads *App Installer* with its dependencies (VCLibs and Windows App Runtime) from the official GitHub release.
+
+### Menu keys
+
+| Key | Action |
+|---|---|
+| `↑` `↓` `PgUp` `PgDn` `Home` `End` | Move the cursor |
+| `Space` | Tick / untick |
+| `Enter` | Install the selection |
+| `Esc` | Cancel (in step 2 it returns to categories) |
+| `A` | Select all |
+| `N` | Select none |
+| `I` | Invert selection |
+| `G` | Add a winget ID manually |
+| `X` | Save the selection as a JSON profile |
+| `1`–`6` | Quick profile: Basic, Gaming, Development, Office, Communication, Streaming |
+
+The window scales its font automatically (minimum 18 px) so it does not open tiny. You can force a size:
 
 ```powershell
+.\Instalar-Software.ps1 -Fuente 24   # height in pixels (0 = automatic)
+```
+
+### Main menu options
+
+1. **Install programs (pick a category)** — two steps: category first, then only its programs.
+2. **Import a JSON profile and install** — installs the profile's packages and applies its de-bloat with no prompts.
+3. **Update everything** — `winget upgrade --all` after confirmation.
+4. **Remove preinstalled apps** — scans the machine and shows only what is actually installed (`Detected X of 33`); when it finds none it lists all 33. The default selection ticks the bloat.
+5. **Verify catalogue IDs** — checks each one with `winget show` and reports the ones that no longer exist.
+
+### Command-line modes
+
+```powershell
+# Fully unattended install from a profile (packages + de-bloat)
 .\Instalar-Software.ps1 -Modo Instalar -Perfil .\perfiles\gaming.json
+
+# Update everything installed
 .\Instalar-Software.ps1 -Modo Actualizar
+
+# Interactive de-bloat (press 'X' to save the selection)
 .\Instalar-Software.ps1 -Modo Limpieza
+
+# Only a profile's cleanup, without installing its packages
+.\Instalar-Software.ps1 -Modo Limpieza -Perfil .\perfiles\gaming.json
+
+# Check that no catalogue or profile ID has changed
 .\Instalar-Software.ps1 -Modo Verificar
+
+# Regenerate docs/catalogo.md after editing the catalogue
 .\Instalar-Software.ps1 -Modo Catalogo
 ```
 
-This README is bilingual: the original Spanish version remains first, and the English version is provided below for cross-language usability.
+Extra switches:
+
+```powershell
+.\Instalar-Software.ps1 -Todo                # pre-tick the whole catalogue
+.\Instalar-Software.ps1 -NoAdmin             # no elevation (current user only)
+.\Instalar-Software.ps1 -Alcance User        # Auto | Machine | User
+.\Instalar-Software.ps1 -Fuente 24           # font size in px (0 = automatic)
+.\Instalar-Software.ps1 -Ayuda               # full help (Get-Help)
+```
+
+**Scope**: `Auto` (default) does not force `--scope` and lets each installer use its usual mode; `Machine` installs for all users (admin required) and `User` only for the current account.
+
+### JSON profiles
+
+Press `X` to save the current selection as a reusable profile:
+
+```json
+{
+  "nombre": "selection-20261005-141908",
+  "creado": "2026-10-05T14:19:08",
+  "alcance": "Auto",
+  "paquetes": ["Google.Chrome", "7zip.7zip", "Valve.Steam"],
+  "bloat": []
+}
+```
+
+Copy the file to another PC and run `-Modo Instalar -Perfil ...` to replicate the same setup. `perfiles/` includes five examples: `basico`, `gaming`, `desarrollo`, `ofimatica` and `comunicacion`.
+
+### De-bloat
+
+Option 4 and the `Limpieza` mode remove preinstalled apps that usually amount to noise (Candy Crush, news, Cortana…). The script:
+
+1. Scans the machine and filters the ones that really exist.
+2. Proposes a default selection with the expendable ones.
+3. Asks for confirmation before uninstalling.
+
+You can save your own cleanup list with `X` and apply it on another machine from a profile.
+
+### ID verification
+
+winget renames packages from time to time (for example, `NodeJS.NodeJS` became `OpenJS.NodeJS`). When that happens, installation fails with `0x8A150014 / No package found`.
+
+Option 5 or `-Modo Verificar` walks the catalogue, the quick profiles and `perfiles/*.json`, lists the broken IDs and prints the exact `winget search` to find the replacement.
+
+If you type a non-existent ID with `G`, the script checks whether it is actually a de-bloat app and, if not, runs `winget search` and suggests up to three similar packages.
+
+### Logs and exit codes
+
+- Every run writes `log\instalacion-<date>.log`; the **last 20** are kept.
+- Exit codes: `0` = all good, `1` = some failures, `2` = configuration error.
+
+### Project structure
+
+```text
+winget-instalador-desatendido/
+├── INICIAR.bat              # Daily launcher (UAC + PowerShell)
+├── Instalar-Software.ps1    # Engine: catalogue, menu, install and de-bloat
+├── README.md
+├── CHANGELOG.md
+├── LICENSE                  # MIT
+├── .gitignore               # Ignores log/
+├── docs/
+│   ├── catalogo.md          # The 83 programs with their IDs
+│   ├── perfiles.md          # Profile format and usage
+│   └── problemas.md         # Symptom → cause → fix
+├── log/                     # Logs (last 20)
+└── perfiles/                # 5 sample profiles + exported ones
+```
+
+### Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/catalogo.md](docs/catalogo.md) | The 83 programs with their IDs, quick profiles and de-bloat apps |
+| [docs/perfiles.md](docs/perfiles.md) | JSON format, creating one with `X` and using it on another PC |
+| [docs/problemas.md](docs/problemas.md) | Broken IDs, frozen window, UAC, missing winget and more |
+| [CHANGELOG.md](CHANGELOG.md) | Changes per release |
+
+### Notes and limits
+
+- **Versions**: the script never pins a version, it only passes `--id`, so winget always installs the latest available. Option 3 updates them all.
+- **Microsoft Store apps** (Netflix, Prime Video, Disney+, Crunchyroll, Apple TV, WhatsApp, Revo Uninstaller): they use store IDs (`9...`) and the `msstore` source, which Windows enables by default. WhatsApp, for instance, is only distributed there (`9NKSQGP7F2NH`).
+- **Installers that ignore `--silent`**: a few, such as Steam, still open their wizard. That is the installer's behaviour, not the script's.
+- **Interrupted downloads**: the script retries, resumes and verifies size and integrity before using the file.
+- **Catalogue**: if you add or remove programs in `$script:Catalogo`, regenerate the docs with `-Modo Catalogo` so `docs/catalogo.md` stays current.
+- **Offline** you cannot install anything, although the menu and help still work.
+
+### License
+
+**MIT** — see [LICENSE](LICENSE).
